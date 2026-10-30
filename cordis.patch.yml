@@ -1,0 +1,16 @@
+# dsh-memory-nebula: 3D memory Dyson sphere panel.
+# All paths are optional. Empty values mean "auto-detect":
+#   - vaultPath: the DSH Memory Vault (recommended) under Documents/ or home
+#   - sessionDir: $DSH_HOME/storages/session_projcache/sessions
+#   - avatarPath: the plugin's assets/avatar.png
+# Users can edit these in the plugin manager settings page or override them in
+# the profile's own cordis.patch.yml without editing this file.
+- insert:
+    - id: memory-nebula
+      name: dsh-memory-nebula
+      config:
+        vaultPath: ''
+        sessionDir: ''
+        avatarPath: ''
+        imageRoots: ''
+        pollMs: 2500

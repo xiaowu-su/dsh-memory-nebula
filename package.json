@@ -1,0 +1,80 @@
+{
+  "name": "dsh-memory-nebula",
+  "version": "0.2.8",
+  "private": false,
+  "type": "module",
+  "description": "Portable 3D memory Dyson sphere for DSH: configurable DSH Memory vault, session directory, avatar and image roots; syncs memories and sessions live.",
+  "icon": "./icon.svg",
+  "meta": {
+    "title": "记忆戴森球",
+    "description": "把长期记忆和会话渲染成一颗可旋转的三维戴森球；记忆库、会话目录、头像都可配置。"
+  },
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "view.html",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg",
+    "assets/*",
+    "docs/*",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-slots"
+      ]
+    }
+  },
+  "license": "MIT",
+  "author": "xiaowu-su",
+  "engines": {
+    "node": ">=20",
+    "dsh": ">=0.2.1-rc.2"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/schemastery": ">=3.18.1"
+  },
+  "peerDependenciesMeta": {
+    "@deepseek-ai/schemastery": {
+      "optional": true
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xiaowu-su/dsh-memory-nebula.git"
+  },
+  "homepage": "https://github.com/xiaowu-su/dsh-memory-nebula#readme",
+  "bugs": {
+    "url": "https://github.com/xiaowu-su/dsh-memory-nebula/issues"
+  },
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "dsh-plugin",
+    "long-term-memory",
+    "memory",
+    "dyson-sphere",
+    "canvas",
+    "visualization"
+  ],
+  "scripts": {
+    "check": "node --check index.js && node --check client.js",
+    "pack:check": "npm pack --dry-run"
+  }
+}

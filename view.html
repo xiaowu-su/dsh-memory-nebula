@@ -1,0 +1,1790 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>03 · 记忆戴森球</title>
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;overflow:hidden;background:#04060d;color:#dfe9ff;
+    font-family:"Noto Sans SC","Source Han Sans SC","PingFang SC","Microsoft YaHei",sans-serif}
+  #stage{position:fixed;inset:0;background:
+    radial-gradient(circle at 50% 54%,rgba(150,96,32,.17),transparent 46%),
+    radial-gradient(ellipse at 18% 26%,rgba(45,110,150,.16),transparent 55%),
+    radial-gradient(ellipse at 84% 24%,rgba(58,80,175,.18),transparent 56%),
+    radial-gradient(ellipse at 52% 92%,rgba(86,58,140,.18),transparent 62%),
+    radial-gradient(circle at 50% 50%,#0a1424 0%,#05080f 70%,#03050a 100%)}
+  canvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:grab;touch-action:none}
+  canvas.dragging{cursor:grabbing}
+  .vignette{position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(circle at 50% 52%,transparent 42%,rgba(0,0,0,.52) 100%)}
+  header{position:absolute;left:28px;top:22px;pointer-events:none;z-index:3}
+  h1{margin:0;font-size:20px;letter-spacing:2px;font-weight:650;color:#f4e8d4}
+  h1 em{font-style:normal;color:#7f95b8;font-size:11px;letter-spacing:2px;margin-left:10px}
+  .sub{margin-top:6px;font-size:11px;letter-spacing:.6px;color:#8fa4c4}
+  nav#chips{position:absolute;left:28px;top:86px;display:flex;flex-wrap:wrap;gap:7px;max-width:600px;z-index:4}
+  .chip{appearance:none;border:1px solid rgba(140,175,225,.20);background:rgba(12,22,40,.55);
+    color:#b9cbe6;font:inherit;font-size:11px;letter-spacing:.4px;padding:5px 10px;border-radius:999px;
+    cursor:pointer;backdrop-filter:blur(6px);transition:border-color .2s,background .2s,color .2s}
+  .chip i{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:6px;vertical-align:1px}
+  .chip:hover{border-color:rgba(170,205,255,.45);color:#e8f1ff}
+  .chip.active{background:rgba(255,210,138,.14);border-color:rgba(255,210,138,.55);color:#ffe6b8}
+  #legend{position:absolute;right:28px;top:24px;z-index:3;width:236px;font-size:10.5px;color:#9fb3d3;
+    border:1px solid rgba(140,175,225,.14);background:rgba(8,14,26,.42);border-radius:12px;
+    padding:10px 13px;backdrop-filter:blur(8px);line-height:1.95}
+  #legend b{display:block;font-weight:500;letter-spacing:2px;font-size:9.5px;color:#7f95b8;margin-bottom:2px}
+  #legend span{display:inline-block;width:48%}
+  #legend i{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:5px;vertical-align:1px}
+  #searchWrap{position:absolute;right:28px;top:196px;z-index:4;width:236px;display:flex;align-items:center;gap:6px;
+    border:1px solid rgba(140,175,225,.18);background:rgba(8,14,26,.52);border-radius:10px;padding:5px 9px;backdrop-filter:blur(8px)}
+  #searchWrap input{flex:1 1 auto;min-width:0;border:0;background:transparent;color:#e8f1ff;font:inherit;font-size:11px;outline:none}
+  #searchWrap input::placeholder{color:#6f86a8}
+  #searchCount{font-size:9.5px;color:#8fa4c4;white-space:nowrap}
+  #astro{position:absolute;right:28px;top:240px;z-index:4;width:236px;font-size:10px;color:#8fa4c4;
+    letter-spacing:.3px;line-height:1.5;text-shadow:0 1px 4px #000}
+  #roam{position:absolute;right:28px;top:272px;z-index:4;appearance:none;border:1px solid rgba(255,210,138,.28);
+    background:rgba(255,210,138,.08);color:#ffe6b8;font:inherit;font-size:10.5px;letter-spacing:.5px;
+    padding:5px 10px;border-radius:999px;cursor:pointer;backdrop-filter:blur(6px)}
+  #roam:hover{background:rgba(255,210,138,.16)}
+  #timeline{position:absolute;left:50%;bottom:44px;transform:translateX(-50%);z-index:4;display:flex;align-items:center;
+    gap:8px;padding:7px 10px;border:1px solid rgba(140,175,225,.16);background:rgba(8,14,26,.58);
+    border-radius:12px;backdrop-filter:blur(8px);font-size:10px;color:#9fb3d3;white-space:nowrap}
+  #timeline button{appearance:none;border:1px solid rgba(140,175,225,.22);background:rgba(12,22,40,.6);
+    color:#b9cbe6;font:inherit;font-size:10px;padding:4px 8px;border-radius:8px;cursor:pointer}
+  #timeline button:hover{color:#e8f1ff;border-color:rgba(170,205,255,.45)}
+  #timeline button.on{color:#ffe6b8;border-color:rgba(255,210,138,.55);background:rgba(255,210,138,.12)}
+  #timeRange{width:230px;accent-color:#ffd28a;cursor:pointer}
+  #timeLabel{min-width:92px;text-align:center;color:#b9cbe6;font-size:9.5px}
+  .hint{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);font-size:10.5px;
+    color:#7287a8;letter-spacing:.8px;white-space:nowrap;pointer-events:none;z-index:3}
+  .source{position:absolute;right:28px;bottom:18px;font-size:9.5px;color:#5f7396;letter-spacing:.5px;z-index:3}
+  #tip{position:absolute;left:0;top:0;z-index:6;pointer-events:none;opacity:0;transition:opacity .12s;
+    background:rgba(8,15,28,.92);border:1px solid rgba(150,185,235,.3);border-radius:10px;
+    padding:8px 11px;font-size:11.5px;line-height:1.5;max-width:300px;box-shadow:0 10px 30px rgba(0,0,0,.5);backdrop-filter:blur(8px)}
+  #tip b{display:block;font-weight:600;color:#eef5ff;font-size:12px}
+  #tip small{color:#8fa4c4;font-size:10px;letter-spacing:.4px}
+  #info{position:absolute;left:28px;bottom:100px;width:310px;z-index:5;opacity:0;visibility:hidden;
+    transform:translateY(8px);transition:opacity .25s,transform .25s,visibility .25s;
+    background:linear-gradient(160deg,rgba(14,24,44,.93),rgba(7,12,24,.95));
+    border:1px solid rgba(150,185,235,.24);border-radius:14px;padding:15px 16px 14px;
+    box-shadow:0 20px 60px rgba(0,0,0,.55);backdrop-filter:blur(12px);max-height:calc(100vh - 250px);overflow:auto}
+  #info.on{opacity:1;visibility:visible;transform:translateY(0)}
+  #info .close{position:absolute;right:9px;top:7px;border:0;background:none;color:#7f95b8;
+    font-size:18px;line-height:1;cursor:pointer;padding:2px 6px}
+  #info .badge{display:inline-block;font-size:10px;letter-spacing:.6px;padding:3px 8px;border-radius:999px;
+    border:1px solid rgba(150,185,235,.3);color:#bcd2ef;margin-bottom:8px}
+  #info h3{margin:0 0 6px;font-size:14.5px;font-weight:600;color:#f0f6ff;line-height:1.5}
+  #info p{margin:0 0 9px;font-size:11px;line-height:1.7;color:#9fb3d3;display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}
+  #info .meta{font-size:9.5px;color:#7f95b8;letter-spacing:.4px;margin-bottom:8px}
+  #info .imgs{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 9px}
+  #info .imgs img{width:84px;height:62px;object-fit:cover;border-radius:7px;border:1px solid rgba(150,185,235,.25);display:block;cursor:zoom-in}
+  #info .relations{display:flex;flex-direction:column;gap:4px;margin:0 0 9px}
+  #info .relTitle{font-size:9px;letter-spacing:2px;color:#7f95b8;margin:1px 0 2px}
+  #info .rel{appearance:none;display:block;width:100%;text-align:left;border:1px solid rgba(150,185,235,.16);
+    background:rgba(15,28,50,.55);border-radius:7px;padding:5px 7px;color:#cfe0f8;font:inherit;cursor:pointer}
+  #info .rel:hover{border-color:rgba(255,210,138,.45);background:rgba(255,210,138,.08)}
+  #info .rel.session{border-color:rgba(150,200,255,.24);background:rgba(30,55,90,.45)}
+  #info .rel.session:hover{border-color:rgba(160,210,255,.55);background:rgba(80,140,220,.14)}
+  #info.session-mode .kv,#info.session-mode .bar{display:none}
+  #info .rel strong{display:block;font-size:10px;font-weight:500;line-height:1.4}
+  #info .rel span{display:block;font-size:9px;color:#8fa4c4;line-height:1.4;margin-top:1px}
+  #info .kv{display:flex;justify-content:space-between;font-size:10.5px;color:#7f95b8;letter-spacing:.4px}
+  #info .bar{height:3px;border-radius:2px;background:rgba(150,185,235,.16);margin-top:5px;overflow:hidden}
+  #info .bar i{display:block;height:100%;border-radius:2px;background:linear-gradient(90deg,#ffd28a,#ffe9c4)}
+  #info .foot{margin-top:10px;font-size:9.5px;color:#5f7396;letter-spacing:.5px}
+  @media (max-width:760px){
+    header{left:16px;top:14px} nav#chips{left:16px;top:72px;max-width:calc(100% - 32px)}
+    #legend{display:none} #info{left:16px;right:16px;width:auto;bottom:96px;max-height:52vh;overflow:auto}
+    h1{font-size:17px} .hint{font-size:9.5px;bottom:8px} .source{display:none}
+    .sub{font-size:10px} .sub .path{display:none}
+    #searchWrap{right:16px;top:162px;width:calc(100% - 32px)}
+    #astro,#roam{display:none}
+    #timeline{bottom:36px;width:calc(100% - 32px);justify-content:center;gap:5px;padding:6px 8px}
+    #timeRange{width:120px} #timeLabel{min-width:78px;font-size:9px}
+  }
+
+  #settingsBtn{position:fixed;right:28px;top:334px;z-index:6;appearance:none;border:1px solid rgba(150,185,235,.25);
+    background:rgba(9,16,30,.72);color:#cfe0f8;border-radius:8px;padding:7px 11px;font:inherit;font-size:11px;cursor:pointer}
+  #settingsBtn:hover{border-color:rgba(255,210,138,.5);color:#ffe6b8}
+  #settingsModal{position:fixed;inset:0;z-index:40;display:none;align-items:center;justify-content:center;padding:20px;
+    background:rgba(2,5,10,.66);backdrop-filter:blur(6px)}
+  #settingsModal.on{display:flex}
+  .settingsCard{width:min(560px,100%);max-height:calc(100vh - 40px);overflow:auto;border:1px solid rgba(150,185,235,.25);
+    border-radius:14px;background:linear-gradient(160deg,rgba(16,30,52,.97),rgba(5,10,20,.98));padding:20px 22px;
+    box-shadow:0 28px 80px rgba(0,0,0,.65);color:#d8e6fb}
+  .settingsCard h2{margin:0 0 4px;font-size:16px;font-weight:600;letter-spacing:.04em}
+  .settingsHint{margin:0 0 14px;font-size:11px;color:#8fa4c4;line-height:1.6}
+  .settingsCard label{display:block;margin:0 0 11px;font-size:11px;color:#9fb3d1}
+  .settingsCard input,.settingsCard textarea{display:block;width:100%;box-sizing:border-box;margin-top:4px;border:1px solid rgba(150,185,235,.22);
+    border-radius:7px;background:rgba(5,10,20,.65);color:#e6f0ff;padding:8px 9px;font:12px/1.45 "Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;outline:none}
+  .settingsCard input:focus,.settingsCard textarea:focus{border-color:rgba(255,210,138,.55)}
+  .settingsCard textarea{resize:vertical;min-height:48px}
+  .settingsActions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap}
+  .settingsActions button{appearance:none;border:1px solid rgba(150,185,235,.25);border-radius:7px;background:rgba(20,36,60,.8);
+    color:#cfe0f8;padding:7px 12px;font:inherit;font-size:11px;cursor:pointer}
+  .settingsActions button#setSave{background:rgba(255,210,138,.16);border-color:rgba(255,210,138,.45);color:#ffe6b8}
+  .settingsActions button:disabled{opacity:.5;cursor:default}
+  #setStatus{min-height:16px;margin:10px 0 0;font-size:11px;color:#9fb3d1}
+  body.settingsOpen{overflow:hidden}
+  @media(max-width:620px){#settingsBtn{right:16px;top:auto;bottom:86px}.settingsCard{padding:16px}}
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="sky" aria-label="03 的三维记忆戴森球，可拖动旋转、滚轮缩放"></canvas>
+  <div class="vignette"></div>
+  <header>
+    <h1>03 · 记忆戴森球 <em>MEMORY DYSON SPHERE</em></h1>
+    <div class="sub">0 颗记忆星 · 6 个采集区 · 长期记忆库 <span class="path"></span></div>
+  </header>
+  <nav id="chips" aria-label="星团筛选"><button class="chip active" data-c="all">全部</button></nav>
+  <div id="legend"><b>星 型</b>
+    <span><i style="background:#ffd28a"></i>身份</span><span><i style="background:#79dbe8"></i>偏好</span>
+    <span><i style="background:#7fe6b6"></i>经验</span><span><i style="background:#8db6ff"></i>项目</span>
+    <span><i style="background:#c4a2ff"></i>知识</span><span><i style="background:#97a6ff"></i>决策</span>
+    <span><i style="background:#a8b6cb"></i>状态</span><span><i style="background:#65748f"></i>归档</span>
+    <span style="width:100%"><i style="background:transparent;border:1px solid #a8d4ff;box-sizing:border-box"></i>会话卫星</span>
+  </div>
+  <div id="searchWrap"><input id="search" type="search" placeholder="搜索记忆 / 类型 / 采集区" aria-label="搜索记忆"><span id="searchCount"></span></div>
+  <div id="astro"></div>
+  <button id="roam" aria-label="随机漫游">随机漫游</button>
+  <button id="settingsBtn" type="button" aria-label="路径设置">⚙ 路径设置</button>
+  <div id="timeline">
+    <button id="playTime" aria-label="回放记忆">回放</button>
+    <input id="timeRange" type="range" min="0" max="100" value="100" step="1" aria-label="记忆时间轴">
+    <span id="timeLabel">至今</span>
+    <button id="timeAll" aria-label="回到现在">至今</button>
+  </div>
+  <div class="hint">拖动旋转 · 滚轮缩放 · 悬停看记忆与轨道 · 点击看关系链</div>
+  <div class="source">source · 自动检测</div>
+  <div id="tip"><b></b><small></small></div>
+  <aside id="info">
+    <button class="close" id="closeInfo" aria-label="关闭">×</button>
+    <div class="badge" id="iBadge"></div>
+    <h3 id="iTitle"></h3>
+    <p id="iDesc"></p>
+    <div class="meta" id="iMeta"></div>
+    <div class="imgs" id="iImages"></div>
+    <div class="relations" id="iRelated"></div>
+    <div class="kv"><span>重要度 <strong id="iImp"></strong></span><span id="iDate"></span></div>
+    <div class="bar"><i id="iBar"></i></div>
+    <div class="foot" id="iFoot"></div>
+  </aside>
+
+  <div id="settingsModal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+    <div class="settingsCard">
+      <h2 id="settingsTitle">路径设置</h2>
+      <p class="settingsHint">留空 = 自动检测。保存后立即重新扫描；记忆库、会话目录、头像和额外图片根都会更新。</p>
+      <label>记忆库目录（vaultPath）
+        <input id="setVault" type="text" placeholder="留空自动检测 DSH Memory">
+      </label>
+      <label>会话目录（sessionDir）
+        <input id="setSession" type="text" placeholder="留空自动检测 $DSH_HOME/storages/session_projcache/sessions">
+      </label>
+      <label>头像文件或目录（avatarPath）
+        <input id="setAvatar" type="text" placeholder="留空使用插件 assets/avatar.png">
+      </label>
+      <label>额外图片根目录（imageRoots，换行或逗号分隔）
+        <textarea id="setImages" rows="2" placeholder="留空只允许记忆库/插件/DSH media/Pictures/Downloads/头像目录"></textarea>
+      </label>
+      <label>鲸心标题（coreLabel）
+        <input id="setCoreLabel" type="text" placeholder="鲸心 · 03（默认）">
+      </label>
+      <label>轮询间隔（pollMs）
+        <input id="setPoll" type="number" min="800" max="30000" step="100" value="2500">
+      </label>
+      <div class="settingsActions">
+        <button id="setDetect" type="button">自动检测</button>
+        <button id="setSave" type="button">保存并生效</button>
+        <button id="setClose" type="button">关闭</button>
+      </div>
+      <p id="setStatus" role="status"></p>
+    </div>
+  </div>
+</div>
+<script>
+(() => {
+  'use strict';
+  const canvas = document.getElementById('sky');
+  const ctx = canvas.getContext('2d');
+  const tip = document.getElementById('tip');
+  const info = document.getElementById('info');
+  const searchInput = document.getElementById('search');
+  const searchCount = document.getElementById('searchCount');
+  const astroEl = document.getElementById('astro');
+  const roamBtn = document.getElementById('roam');
+  const timeRange = document.getElementById('timeRange');
+  const timeLabel = document.getElementById('timeLabel');
+  const playBtn = document.getElementById('playTime');
+  const timeAll = document.getElementById('timeAll');
+  const iMeta = document.getElementById('iMeta');
+  const iImages = document.getElementById('iImages');
+  const iRelated = document.getElementById('iRelated');
+  const settingsBtn = document.getElementById('settingsBtn');
+  const settingsModal = document.getElementById('settingsModal');
+  const setVault = document.getElementById('setVault');
+  const setSession = document.getElementById('setSession');
+  const setAvatar = document.getElementById('setAvatar');
+  const setImages = document.getElementById('setImages');
+  const setCoreLabel = document.getElementById('setCoreLabel');
+  const setPoll = document.getElementById('setPoll');
+  const setStatus = document.getElementById('setStatus');
+  const setClose = document.getElementById('setClose');
+  const setSave = document.getElementById('setSave');
+  const setDetect = document.getElementById('setDetect');
+  let lastSettings = null;
+
+  function setSettingsStatus(text, error) {
+    if (!setStatus) return;
+    setStatus.textContent = text || '';
+    setStatus.style.color = error ? 'var(--bad,#ff9b9b)' : '';
+  }
+
+  async function openSettings() {
+    if (!settingsModal) return;
+    setSettingsStatus('读取配置…');
+    try {
+      const response = await fetch('/memory-nebula/settings', { cache: 'no-store' });
+      const data = await response.json();
+      if (!response.ok || !data.ok) throw new Error(data.error || ('HTTP ' + response.status));
+      lastSettings = data;
+      setVault.value = data.values?.vaultPath || '';
+      setSession.value = data.values?.sessionDir || '';
+      setAvatar.value = data.values?.avatarPath || '';
+      setImages.value = data.values?.imageRoots || '';
+      setCoreLabel.value = data.values?.coreLabel || '';
+      setPoll.value = data.values?.pollMs || 2500;
+      setSettingsStatus('当前生效：' + (data.effective?.vaultPath || '未检测到记忆库'));
+      settingsModal.classList.add('on');
+      document.body.classList.add('settingsOpen');
+    } catch (error) {
+      setSettingsStatus('读取失败：' + String(error.message || error), true);
+    }
+  }
+
+  function closeSettings() {
+    settingsModal?.classList.remove('on');
+    document.body.classList.remove('settingsOpen');
+  }
+
+  settingsBtn?.addEventListener('click', openSettings);
+  setClose?.addEventListener('click', closeSettings);
+  settingsModal?.addEventListener('click', (event) => { if (event.target === settingsModal) closeSettings(); });
+  document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && settingsModal?.classList.contains('on')) closeSettings(); });
+  setDetect?.addEventListener('click', () => {
+    if (!lastSettings) return;
+    setVault.value = lastSettings.detected?.vaultPath || '';
+    setSession.value = lastSettings.detected?.sessionDir || '';
+    setAvatar.value = lastSettings.detected?.avatarPath || '';
+    setSettingsStatus('已填入自动检测结果；可以再改。');
+  });
+  setSave?.addEventListener('click', async () => {
+    if (!setSave) return;
+    setSave.disabled = true;
+    setSettingsStatus('保存中…');
+    try {
+      const body = {
+        vaultPath: setVault.value,
+        sessionDir: setSession.value,
+        avatarPath: setAvatar.value,
+        imageRoots: setImages.value,
+        coreLabel: setCoreLabel.value,
+        pollMs: Number(setPoll.value) || 2500,
+      };
+      const response = await fetch('/memory-nebula/settings', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.ok) throw new Error(data.error || ('HTTP ' + response.status));
+      lastSettings = data;
+      setSettingsStatus('已保存并生效：' + (data.effective?.vaultPath || '自动检测'));
+      await sync();
+    } catch (error) {
+      setSettingsStatus('保存失败：' + String(error.message || error), true);
+    } finally {
+      setSave.disabled = false;
+    }
+  });
+  let searchTerm = '';
+  let vaultPath = '';
+  let coreLabel = '鲸心 · 03';
+  const coreAvatar = new Image();
+  let coreAvatarReady = false;
+  coreAvatar.addEventListener('load',()=>{ coreAvatarReady = true; });
+  coreAvatar.addEventListener('error',()=>{ coreAvatarReady = false; });
+  let hovered = null, selected = null;
+  let hoveredSession = null, selectedSession = null;
+  let SESSIONS = [];
+  const sessionById = new Map();
+  let projectedSessions = [];
+  const timeline = { min: 0, max: 0, cutoff: Infinity, playing: null };
+
+  const TYPE = {
+    identity:{cn:'身份',color:'#ffd28a'}, preference:{cn:'偏好',color:'#79dbe8'},
+    experience:{cn:'经验',color:'#7fe6b6'}, project:{cn:'项目',color:'#8db6ff'},
+    knowledge:{cn:'知识',color:'#c4a2ff'}, decision:{cn:'决策',color:'#97a6ff'},
+    state:{cn:'状态',color:'#a8b6cb'}, archive:{cn:'归档',color:'#65748f'}
+  };
+
+  const CLUSTERS = [
+    {id:'heart', name:'鲸心',     dir:[0,.12,1],          color:'#ffd28a'},
+    {id:'rules', name:'雪的规矩', dir:[-.78,.55,.32],     color:'#79dbe8'},
+    {id:'qzone', name:'说说轨道', dir:[.87,.40,.28],      color:'#7fe6b6'},
+    {id:'relay', name:'传讯星域', dir:[-.52,-.66,.54],    color:'#5fd6c8'},
+    {id:'infra', name:'本机基建', dir:[.60,-.55,-.58],    color:'#8f7fe8'},
+    {id:'dust',  name:'旧星尘',   dir:[-.20,-.30,-.93],   color:'#6b7a94'}
+  ];
+
+  const MEMORIES = [];
+
+  const V = {
+    add:(a,b)=>[a[0]+b[0],a[1]+b[1],a[2]+b[2]],
+    mul:(a,k)=>[a[0]*k,a[1]*k,a[2]*k],
+    cross:(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]],
+    len:a=>Math.hypot(a[0],a[1],a[2]),
+    norm:a=>{const l=Math.hypot(a[0],a[1],a[2])||1;return[a[0]/l,a[1]/l,a[2]/l]}
+  };
+  function hexA(hex,a){const n=parseInt(hex.slice(1),16);return`rgba(${n>>16&255},${n>>8&255},${n&255},${a})`}
+
+  const clusterById={};
+  for (const c of CLUSTERS){
+    c.dir=V.norm(c.dir); clusterById[c.id]=c;
+    c.nodes=MEMORIES.filter(m=>m.c===c.id);
+    c.seed=(c.id.charCodeAt(0)*1.7+c.id.length*2.3)%Math.PI;
+  }
+  for (const c of CLUSTERS){
+    const n=c.nodes.length;
+    if (c.id==='heart' && c.nodes.length>=3){
+      c.nodes[0].p=[0,0,0];
+      c.nodes[1].p=V.mul(V.norm([.10,.13,.99]),.97);
+      c.nodes[2].p=V.mul(V.norm([-.13,.19,.97]),.97);
+      continue;
+    }
+    if (!n) continue;
+    let u=V.cross(c.dir,[0,1,0]);
+    if (V.len(u)<.1) u=V.cross(c.dir,[1,0,0]);
+    u=V.norm(u); const v=V.cross(c.dir,u);
+    for (let i=0;i<n;i++){
+      const ang=c.seed+i*Math.PI*2/n;
+      const rad=.22+.05*Math.sin(i*2.3+c.seed);
+      const d=V.norm(V.add(V.mul(c.dir,Math.cos(rad)),
+        V.mul(V.add(V.mul(u,Math.cos(ang)),V.mul(v,Math.sin(ang))),Math.sin(rad))));
+      c.nodes[i].p=V.mul(d,.93+.06*((i*7)%4)/3);
+      c.nodes[i].ang=ang;
+    }
+    c.nodes.sort((a,b)=>a.ang-b.ang);
+  }
+  for (const c of CLUSTERS){
+    let cen=[0,0,0];
+    if (c.id==='heart') cen=[0,.10,.98];
+    else { for (const n of c.nodes) cen=V.add(cen,n.p); cen=V.mul(cen,1/c.nodes.length); }
+    c.cen=V.mul(V.norm(cen),.96);
+    let u=V.cross(c.dir,[0,1,0]);
+    if (V.len(u)<.1) u=V.cross(c.dir,[1,0,0]);
+    u=V.norm(u); const v=V.cross(c.dir,u);
+    c.puffs=[];
+    for (let k=0;k<3;k++){
+      const ang=c.seed+k*2.1, rr=.06+k*.05;
+      const off=V.mul(V.add(V.mul(u,Math.cos(ang)),V.mul(v,Math.sin(ang))),rr);
+      c.puffs.push({p:V.mul(V.norm(V.add(c.cen,off)),.9),size:.55+.14*k});
+    }
+  }
+
+  const edges=[];
+  for (const c of CLUSTERS){
+    if (c.id==='heart'){
+      edges.push({a:c.nodes[0],b:c.nodes[1],c,kind:'solid'});
+      edges.push({a:c.nodes[0],b:c.nodes[2],c,kind:'dash'});
+      continue;
+    }
+    const ns=c.nodes;
+    for (let i=0;i<ns.length;i++) edges.push({a:ns[i],b:ns[(i+1)%ns.length],c,kind:'solid'});
+  }
+  const heart=CLUSTERS[0].nodes[0];
+  const spokes=CLUSTERS.filter(c=>c.id!=='heart').map(c=>({a:heart,b:{p:c.cen},c,kind:'spoke'}));
+
+  // particles
+  const dust=[];
+  for (const c of CLUSTERS){
+    const count=c.id==='heart'?100:180;
+    let u=V.cross(c.dir,[0,1,0]);
+    if (V.len(u)<.1) u=V.cross(c.dir,[1,0,0]);
+    u=V.norm(u); const v=V.cross(c.dir,u);
+    for (let i=0;i<count;i++){
+      const phi=Math.random()*Math.PI*2;
+      const spread=Math.pow(Math.random(),1.4)*.62;
+      const dir=V.norm(V.add(V.mul(c.dir,Math.cos(spread)),
+        V.mul(V.add(V.mul(u,Math.cos(phi)),V.mul(v,Math.sin(phi))),Math.sin(spread))));
+      dust.push({p:V.mul(dir,.55+Math.random()*.55),col:c.color,cid:c.id,
+        size:.55+Math.random()*1.6,a:.06+Math.random()*.25,ph:Math.random()*6.28});
+    }
+  }
+  for (let i=0;i<130;i++){
+    const u=Math.random()*2-1,th=Math.random()*Math.PI*2,s=Math.sqrt(1-u*u);
+    dust.push({p:[s*Math.cos(th),u,s*Math.sin(th)],col:'#cfe0ff',cid:'',
+      size:.4+Math.random()*1.1,a:.04+Math.random()*.13,ph:Math.random()*6.28});
+  }
+
+  // ---- Dyson sphere lattice (geodesic icosphere, class I frequency 3) ----
+  const DYSON_R = .985;
+  const dyson = (() => {
+    const phi=(1+Math.sqrt(5))/2;
+    const baseV=[[-1,phi,0],[1,phi,0],[-1,-phi,0],[1,-phi,0],
+      [0,-1,phi],[0,1,phi],[0,-1,-phi],[0,1,-phi],
+      [phi,0,-1],[phi,0,1],[-phi,0,-1],[-phi,0,1]].map(V.norm);
+    const baseF=[[0,11,5],[0,5,1],[0,1,7],[0,7,10],[0,10,11],
+      [1,5,9],[5,11,4],[11,10,2],[10,7,6],[7,1,8],
+      [3,9,4],[3,4,2],[3,2,6],[3,6,8],[3,8,9],
+      [4,9,5],[2,4,11],[6,2,10],[8,6,7],[9,8,1]];
+    const freq=3, outV=[], faces=[], map=new Map();
+    function add(p){
+      const n=V.norm(p), k=n.map(x=>x.toFixed(4)).join(',');
+      if(map.has(k)) return map.get(k);
+      const i=outV.length; outV.push(n); map.set(k,i); return i;
+    }
+    for(const f of baseF){
+      const A=baseV[f[0]],B=baseV[f[1]],C=baseV[f[2]],grid=[];
+      for(let i=0;i<=freq;i++){
+        grid[i]=[];
+        for(let j=0;j<=freq-i;j++){
+          const w0=(freq-i-j)/freq, w1=i/freq, w2=j/freq;
+          grid[i][j]=add([A[0]*w0+B[0]*w1+C[0]*w2,
+                          A[1]*w0+B[1]*w1+C[1]*w2,
+                          A[2]*w0+B[2]*w1+C[2]*w2]);
+        }
+      }
+      for(let i=0;i<freq;i++) for(let j=0;j<freq-i;j++){
+        faces.push([grid[i][j],grid[i+1][j],grid[i][j+1]]);
+        if(i+j<freq-1) faces.push([grid[i+1][j],grid[i+1][j+1],grid[i][j+1]]);
+      }
+    }
+    const seen=new Set(), es=[];
+    for(const f of faces) for(const [a,b] of [[f[0],f[1]],[f[1],f[2]],[f[2],f[0]]]){
+      const k=a<b?a+':'+b:b+':'+a;
+      if(seen.has(k)) continue;
+      seen.add(k); es.push([a,b]);
+    }
+    return {verts:outV, faces, edges:es};
+  })();
+
+  // a handful of free-flying collector mirrors on inclined orbits
+  const collectors = (() => {
+    const orbits = [
+      {a:[1,0,0], b:[0,1,0],        r:1.22, col:'#ffd28a', speed:.00010},
+      {a:[.866,.5,0], b:[-.5,.866,0], r:1.31, col:'#7fd8e8', speed:-.00007},
+      {a:[.5,0,.866], b:[0,1,0],    r:1.40, col:'#ffcf8a', speed:.00006}
+    ];
+    const out=[];
+    for (let oi=0;oi<orbits.length;oi++){
+      for (let k=0;k<4;k++){
+        out.push({o:orbits[oi], phase:oi*1.7+k*Math.PI/2, size:2.4+((oi+k)%3)*.6});
+      }
+    }
+    return out;
+  })();
+
+  // ---- free satellite orbits for the memory bodies ----
+  const ORBIT_MIN=1.02, ORBIT_MAX=1.18;
+  function orbitHash(str){
+    let h=2166136261;
+    for(let i=0;i<str.length;i++){ h^=str.charCodeAt(i); h=Math.imul(h,16777619); }
+    return h>>>0;
+  }
+  function makeOrbit(m){
+    const h=orbitHash(m.id);
+    const u=((h&1023)/1023)*2-1;
+    const th=(((h>>>10)&1023)/1023)*Math.PI*2;
+    const s=Math.sqrt(1-u*u);
+    const n=[s*Math.cos(th),u,s*Math.sin(th)];
+    let a=V.cross(n,[0,1,0]);
+    if(V.len(a)<.1) a=V.cross(n,[1,0,0]);
+    a=V.norm(a);
+    const b=V.cross(n,a);
+    const imp=Number(m.imp)||65;
+    const archived=m.status==='archived'||m.status==='stale';
+    const base=1.02+(100-imp)/100*.15;
+    const r=Math.min(1.20, base + ((h>>>20)&255)/255*.02 + (archived?.07:0));
+    const speedBase=.00005 + (((h>>>5)&1023)/1023)*.00008;
+    const speed=speedBase*(.65+(100-imp)/100*.6)*(h&1?1:-1);
+    return { a, b, r, speed, phase: (((h>>>15)&1023)/1023)*Math.PI*2 };
+  }
+  function orbitPoint(o,t){
+    const ang=o.phase+o.speed*t;
+    return V.add(V.mul(o.a,Math.cos(ang)*o.r),V.mul(o.b,Math.sin(ang)*o.r));
+  }
+  function initOrbits(){
+    const now=performance.now();
+    for(const m of MEMORIES){
+      if(m.core){ m.orbit=null; m.p=[0,0,0]; continue; }
+      if(!m.orbit) m.orbit=makeOrbit(m);
+      m.p=orbitPoint(m.orbit,now);
+    }
+  }
+  initOrbits();
+
+  function makeSessionOrbit(id){
+    const h=orbitHash('session:'+id);
+    const u=((h&1023)/1023)*2-1;
+    const th=(((h>>>10)&1023)/1023)*Math.PI*2;
+    const ss=Math.sqrt(1-u*u);
+    const n=[ss*Math.cos(th),u,ss*Math.sin(th)];
+    let a=V.cross(n,[0,1,0]);
+    if(V.len(a)<.1) a=V.cross(n,[1,0,0]);
+    a=V.norm(a);
+    const b=V.cross(n,a);
+    return {
+      a, b,
+      r:1.29+((h>>>20)&1023)/1023*.15,
+      speed:(.000024+(((h>>>5)&1023)/1023)*.000045)*(h&1?1:-1),
+      phase:(((h>>>15)&1023)/1023)*Math.PI*2
+    };
+  }
+  function sessionPoint(s,t){
+    const ang=s.orbit.phase+s.orbit.speed*t;
+    return V.add(V.mul(s.orbit.a,Math.cos(ang)*s.orbit.r),V.mul(s.orbit.b,Math.sin(ang)*s.orbit.r));
+  }
+  function buildSessions(list){
+    const existing=new Map(SESSIONS.map(x=>[x.id,x]));
+    const next=[];
+    for(const item of Array.isArray(list)?list:[]){
+      let node=existing.get(item.id);
+      if(!node) node={ id:item.id, orbit:makeSessionOrbit(item.id), p:[0,0,0] };
+      node.title=item.title||('会话 '+item.id.slice(-6));
+      node.memories=Array.isArray(item.memories)?item.memories:[];
+      node.created=Number(item.created)||0;
+      next.push(node);
+    }
+    SESSIONS=next;
+    sessionById.clear();
+    for(const s of SESSIONS) sessionById.set(s.id,s);
+    const now=performance.now();
+    for(const s of SESSIONS) s.p=sessionPoint(s,now);
+  }
+  function sessionLabel(s){
+    const t=String(s.title||'');
+    return t.length>12?t.slice(0,11)+'…':t;
+  }
+  function sessionVisible(s){
+    if(timeline.cutoff===Infinity) return true;
+    return !s.created || s.created<=timeline.cutoff+60000;
+  }
+  function sessionMemoryNodes(s){
+    const out=[];
+    for(const id of (s.memories||[])){
+      const key=memoryKey(id);
+      const node=MEMORIES.find(m=>memoryKey(m.id)===key && isVisible(m));
+      if(node && !out.includes(node)) out.push(node);
+    }
+    return out;
+  }
+
+
+  // ---- timeline, search, daily horoscope ----
+  function memoryKey(id){
+    const s=String(id||'');
+    return s.includes('_') ? s.slice(s.lastIndexOf('_')+1) : s;
+  }
+  function tsOf(m){
+    const raw=m.created || (m.date ? m.date+'T12:00:00Z' : '');
+    const t=Date.parse(raw);
+    return Number.isFinite(t)?t:0;
+  }
+  function isVisible(m){
+    if(m.core || timeline.cutoff===Infinity) return true;
+    const t=tsOf(m);
+    return !t || t<=timeline.cutoff+60000;
+  }
+  function fmtTime(t){
+    if(!t) return '—';
+    const d=new Date(t);
+    return `${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  }
+  function refreshTimeline(){
+    const stamps=MEMORIES.map(tsOf).filter(Boolean);
+    if(!stamps.length) return;
+    timeline.min=Math.min(...stamps);
+    timeline.max=Math.max(Math.max(...stamps),timeline.min+3600000);
+    timeRange.min=String(timeline.min);
+    timeRange.max=String(timeline.max);
+    timeRange.step='1';
+    timeRange.value=String(timeline.cutoff===Infinity?timeline.max:Math.max(timeline.min,Math.min(timeline.max,timeline.cutoff)));
+    updateTimelineUI();
+  }
+  function updateTimelineUI(){
+    const active=timeline.cutoff!==Infinity;
+    timeLabel.textContent=active?fmtTime(timeline.cutoff):'至今';
+    playBtn.textContent=timeline.playing?'暂停':'回放';
+    playBtn.classList.toggle('on',!!timeline.playing);
+    if(selected && !isVisible(selected)){selected=null;updateInfo(null);}
+    if(selectedSession && !sessionVisible(selectedSession)){selectedSession=null;info.classList.remove('on');}
+    updateMeta();
+    updateSearchCount();
+  }
+  function setTimeline(value){
+    const v=Number(value);
+    timeline.cutoff=v>=timeline.max-1000?Infinity:v;
+    timeRange.value=String(timeline.cutoff===Infinity?timeline.max:timeline.cutoff);
+    if(selected && !isVisible(selected)){selected=null;updateInfo(null);}
+    updateTimelineUI();
+  }
+  function stopPlay(){
+    if(timeline.playing){clearInterval(timeline.playing);timeline.playing=null;}
+  }
+  function startPlay(){
+    if(timeline.playing){stopPlay();updateTimelineUI();return;}
+    if(timeline.max<=timeline.min) return;
+    if(timeline.cutoff===Infinity || timeline.cutoff>=timeline.max-1) timeline.cutoff=timeline.min;
+    const span=timeline.max-timeline.min;
+    let i=0;
+    timeline.playing=setInterval(()=>{
+      i++;
+      if(i>=120){
+        timeline.cutoff=Infinity; timeRange.value=String(timeline.max);
+        stopPlay(); updateTimelineUI(); return;
+      }
+      timeline.cutoff=timeline.min+span*(i/120);
+      timeRange.value=String(timeline.cutoff);
+      updateTimelineUI();
+    },100);
+    updateTimelineUI();
+  }
+  function matchMemory(m){
+    if(!searchTerm) return true;
+    const hay=`${m.label||''} ${m.full||''} ${m.summary||''} ${TYPE[m.t]?.cn||''} ${clusterById[m.c]?.name||''} ${m.date||''}`.toLowerCase();
+    return hay.includes(searchTerm);
+  }
+  function updateSearchCount(){
+    if(!searchTerm){searchCount.textContent='';return;}
+    const n=MEMORIES.filter(isVisible).filter(matchMemory).length;
+    searchCount.textContent=n?`${n}`:'0';
+  }
+  function updateAstro(){
+    const now=new Date();
+    const start=new Date(now.getFullYear(),now.getMonth(),now.getDate()).getTime();
+    const end=start+86400000;
+    let today=0;
+    for(const m of MEMORIES){const t=tsOf(m); if(t>=start&&t<end) today++;}
+    const brightest=MEMORIES.slice().sort((a,b)=>b.imp-a.imp)[0];
+    astroEl.textContent=`${today?`今天 +${today}`:'今天安静'} · 最亮 ${brightest?brightest.label:'—'}`;
+  }
+  function updateMeta(){
+    const shown=MEMORIES.filter(isVisible).length;
+    const total=MEMORIES.length;
+    const sub=document.querySelector('.sub');
+    if(!sub) return;
+    const sessionText=SESSIONS.length?` · ${SESSIONS.length} 个会话`:'';
+    sub.innerHTML=`${shown}${timeline.cutoff===Infinity?'':` / ${total}`} 颗记忆星 · ${CLUSTERS.length} 个采集区${sessionText} · 长期记忆库 <span class="path"></span>`;
+    const p=sub.querySelector('.path');
+    if(p) p.textContent=vaultPath;
+  }
+  refreshTimeline();
+  updateAstro();
+
+  const cam={yaw:.15,pitch:-.08,zoom:1.05,tx:null,ty:null,tz:null,t0:0,t1:0,focus:'all',pending:null};
+  const D=3.1;
+  let f=1,cx=0,cy=0,halfW=1,halfH=1;
+  let dragging=null,lastInteract=0;
+  let projected=[];
+
+  let bgStars=[];
+  function resize(){
+    const dpr=Math.min(2,window.devicePixelRatio||1);
+    const w=canvas.clientWidth,h=canvas.clientHeight;
+    canvas.width=Math.round(w*dpr); canvas.height=Math.round(h*dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    cx=w/2; cy=h*.53; halfW=w; halfH=h;
+    f=Math.min(w,h)*(w<620?1.22:1.02);
+    bgStars=[];
+    for (let i=0;i<140;i++) bgStars.push({x:Math.random()*w,y:Math.random()*h,r:.3+Math.random()*1.05,a:.08+Math.random()*.32,ph:Math.random()*6.28});
+  }
+  window.addEventListener('resize',resize);
+
+  function rotate(p){
+    const cyy=Math.cos(cam.yaw),syy=Math.sin(cam.yaw);
+    const x=p[0]*cyy+p[2]*syy;
+    const z0=-p[0]*syy+p[2]*cyy;
+    const cp=Math.cos(cam.pitch),sp=Math.sin(cam.pitch);
+    return [x,p[1]*cp-z0*sp,p[1]*sp+z0*cp];
+  }
+  function project(p){
+    const r=rotate(p);
+    const s=f*cam.zoom/(D-r[2]);
+    return {x:cx+r[0]*s,y:cy-r[1]*s,z:r[2],s};
+  }
+
+  const glows={},softs={};
+  function makeGlow(color,soft){
+    const key=(soft?'s':'g')+color;
+    const box=soft?softs:glows;
+    if (box[key]) return box[key];
+    const size=96,c=document.createElement('canvas');c.width=c.height=size;
+    const g=c.getContext('2d');
+    const grd=g.createRadialGradient(size/2,size/2,0,size/2,size/2,size/2);
+    if (soft){
+      grd.addColorStop(0,hexA(color,.55));
+      grd.addColorStop(.35,hexA(color,.18));
+      grd.addColorStop(1,hexA(color,0));
+    } else {
+      grd.addColorStop(0,'rgba(255,255,255,.95)');
+      grd.addColorStop(.10,hexA(color,.85));
+      grd.addColorStop(.28,hexA(color,.30));
+      grd.addColorStop(.60,hexA(color,.06));
+      grd.addColorStop(1,hexA(color,0));
+    }
+    g.fillStyle=grd;g.fillRect(0,0,size,size);
+    box[key]=c;return c;
+  }
+
+  function drawNebula(t){
+    // soft ball behind everything
+    const p=project([0,0,0]);
+    const R=f*cam.zoom/Math.sqrt(D*D-1)*1.02;
+    const bg=ctx.createRadialGradient(p.x,p.y,R*.05,p.x,p.y,R);
+    bg.addColorStop(0,'rgba(255,214,150,.07)');
+    bg.addColorStop(.35,'rgba(84,120,190,.13)');
+    bg.addColorStop(.72,'rgba(96,72,170,.09)');
+    bg.addColorStop(1,'rgba(40,60,120,0)');
+    ctx.fillStyle=bg;ctx.beginPath();ctx.arc(p.x,p.y,R,0,6.283);ctx.fill();
+
+    ctx.globalCompositeOperation='lighter';
+    // cluster clouds
+    for (const c of CLUSTERS){
+      const dimC=(cam.focus!=='all'&&cam.focus!==c.id?.22:1);
+      for (const puff of c.puffs){
+        const q=project(puff.p);
+        const size=R*(puff.size*1.25+.10*Math.sin(t*.0004+c.seed))*1.0;
+        const g=makeGlow(c.color,true);
+        ctx.globalAlpha=.09*dimC;
+        ctx.drawImage(g,q.x-size/2,q.y-size/2,size,size);
+      }
+    }
+    ctx.globalAlpha=1;
+    // dust points
+    for (const d of dust){
+      const r=rotate(d.p);
+      const s=f*cam.zoom/(D-r[2]);
+      const x=cx+r[0]*s,y=cy-r[1]*s;
+      if (x<-60||x>halfW+60||y<-60||y>halfH+60) continue;
+      let a=d.a*(.45+.55*(r[2]+1)/2)*(.8+.2*Math.sin(t*.0011+d.ph));
+      if (cam.focus!=='all'&&d.cid&&d.cid!==cam.focus) a*=.22;
+      const size=Math.max(1,d.size*s/240);
+      ctx.globalAlpha=Math.min(.5,a);
+      const g=makeGlow(d.col,true);
+      ctx.drawImage(g,x-size*2,y-size*2,size*4,size*4);
+    }
+    ctx.globalAlpha=1;
+    ctx.globalCompositeOperation='source-over';
+  }
+
+  function drawBg(t){
+    for (const s of bgStars){
+      const a=s.a*(.65+.35*Math.sin(t*.0012+s.ph));
+      ctx.fillStyle=`rgba(200,222,255,${a})`;
+      ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,6.283);ctx.fill();
+    }
+  }
+
+  function drawOrbits(){
+    const orbits=[
+      {a:[1,0,0],b:[0,1,0],col:'#f0b45e',alpha:.085,r:1.055},
+      {a:[0,1,0],b:[0,0,1],col:'#ffcf8a',alpha:.055,r:1.105},
+      {a:[.7071,0,.7071],b:[0,1,0],col:'#7fd8e8',alpha:.035,r:1.16}
+    ];
+    for (const orbit of orbits){
+      ctx.beginPath(); const N=150;
+      for (let i=0;i<=N;i++){
+        const th=i/N*Math.PI*2;
+        const q=project([orbit.r*(orbit.a[0]*Math.cos(th)+orbit.b[0]*Math.sin(th)),
+                         orbit.r*(orbit.a[1]*Math.cos(th)+orbit.b[1]*Math.sin(th)),
+                         orbit.r*(orbit.a[2]*Math.cos(th)+orbit.b[2]*Math.sin(th))]);
+        if (i===0) ctx.moveTo(q.x,q.y); else ctx.lineTo(q.x,q.y);
+      }
+      ctx.strokeStyle=hexA(orbit.col,orbit.alpha); ctx.lineWidth=.8; ctx.stroke();
+    }
+    const R=f*cam.zoom/Math.sqrt(D*D-1);
+    ctx.beginPath(); ctx.arc(cx,cy,R*DYSON_R,0,6.283);
+    ctx.strokeStyle='rgba(255,200,120,.10)'; ctx.lineWidth=1; ctx.stroke();
+  }
+
+  function drawDysonBack(t){
+    const pv=dyson.verts.map(v=>project(V.mul(v,DYSON_R)));
+    ctx.globalCompositeOperation='lighter';
+    for (const [i,j] of dyson.edges){
+      const A=pv[i],B=pv[j],z=(A.z+B.z)/2;
+      if (z>=0) continue;
+      ctx.strokeStyle=`rgba(255,196,112,${.012+.035*(z+1)})`;
+      ctx.lineWidth=.55;
+      ctx.beginPath(); ctx.moveTo(A.x,A.y); ctx.lineTo(B.x,B.y); ctx.stroke();
+    }
+    ctx.globalCompositeOperation='source-over';
+  }
+
+  function drawDysonFront(t){
+    const pv=dyson.verts.map(v=>project(V.mul(v,DYSON_R)));
+    // dark metallic collector plates with golden seams
+    for (let fi=0;fi<dyson.faces.length;fi++){
+      const f=dyson.faces[fi];
+      const A=pv[f[0]],B=pv[f[1]],C=pv[f[2]];
+      const z=(A.z+B.z+C.z)/3;
+      if (z<=0) continue;
+      const gx=(A.x+B.x+C.x)/3, gy=(A.y+B.y+C.y)/3, k=.14;
+      const ax=A.x+(gx-A.x)*k, ay=A.y+(gy-A.y)*k;
+      const bx=B.x+(gx-B.x)*k, by=B.y+(gy-B.y)*k;
+      const cx2=C.x+(gx-C.x)*k, cy2=C.y+(gy-C.y)*k;
+      ctx.beginPath(); ctx.moveTo(ax,ay); ctx.lineTo(bx,by); ctx.lineTo(cx2,cy2); ctx.closePath();
+      ctx.fillStyle=`rgba(7,15,29,${.27+.16*z})`; ctx.fill();
+      if (fi%11===0){
+        ctx.fillStyle=`rgba(255,174,84,${.018+.022*z})`; ctx.fill();
+      }
+      ctx.strokeStyle=`rgba(255,196,116,${.05+.15*z})`; ctx.lineWidth=.55; ctx.stroke();
+    }
+    // bright structural seams
+    ctx.globalCompositeOperation='lighter';
+    for (const [i,j] of dyson.edges){
+      const A=pv[i],B=pv[j],z=(A.z+B.z)/2;
+      if (z<=0) continue;
+      const pulse=.5+.5*Math.sin(t*.0012+(i*7+j)*.55);
+      ctx.strokeStyle=`rgba(255,206,132,${.07+.18*z+.05*pulse})`;
+      ctx.lineWidth=.9;
+      ctx.beginPath(); ctx.moveTo(A.x,A.y); ctx.lineTo(B.x,B.y); ctx.stroke();
+    }
+    // collector hubs at a sparse subset of vertices
+    for (let i=0;i<pv.length;i+=11){
+      const q=pv[i]; if (q.z<=.12) continue;
+      ctx.strokeStyle='rgba(255,228,175,.45)';
+      ctx.lineWidth=.9; ctx.beginPath(); ctx.arc(q.x,q.y,1.8,0,6.283); ctx.stroke();
+      ctx.fillStyle='rgba(255,218,155,.55)';
+      ctx.beginPath(); ctx.arc(q.x,q.y,.8,0,6.283); ctx.fill();
+    }
+    // glowing rim
+    const R=f*cam.zoom/Math.sqrt(D*D-1)*DYSON_R;
+    ctx.strokeStyle='rgba(255,205,130,.16)'; ctx.lineWidth=1.1;
+    ctx.beginPath(); ctx.arc(cx,cy,R,0,6.283); ctx.stroke();
+    ctx.globalCompositeOperation='source-over';
+  }
+
+  function drawBeams(t){
+    const core=project([0,0,0]);
+    ctx.globalCompositeOperation='lighter';
+    for (const m of MEMORIES){
+      if (m.core || !isVisible(m)) continue;
+      if (searchTerm && !matchMemory(m)) continue;
+      if (cam.focus!=='all' && m.c!==cam.focus) continue;
+      const q=project(m.p);
+      if (q.z<-.05) continue;
+      const a=.015+.045*(q.z+1)/2;
+      ctx.strokeStyle=hexA(TYPE[m.t].color,a);
+      ctx.lineWidth=.55;
+      ctx.beginPath(); ctx.moveTo(core.x,core.y); ctx.lineTo(q.x,q.y); ctx.stroke();
+    }
+    ctx.globalCompositeOperation='source-over';
+  }
+
+
+  function drawCollectors(t){
+    ctx.globalCompositeOperation='lighter';
+    for (const c of collectors){
+      const a=c.phase+t*c.o.speed;
+      const p=V.add(V.mul(c.o.a,Math.cos(a)*c.o.r),V.mul(c.o.b,Math.sin(a)*c.o.r));
+      const q=project(p);
+      if (q.z<-.1) continue;
+      const s=Math.max(1.6,c.size*(q.s/260));
+      const col=c.o.col;
+      ctx.strokeStyle=hexA(col,.55); ctx.lineWidth=.8;
+      ctx.beginPath();
+      ctx.moveTo(q.x,q.y-s); ctx.lineTo(q.x+s*.72,q.y);
+      ctx.lineTo(q.x,q.y+s); ctx.lineTo(q.x-s*.72,q.y); ctx.closePath();
+      ctx.stroke();
+      ctx.fillStyle=hexA(col,.20); ctx.fill();
+      ctx.fillStyle=hexA(col,.55);
+      ctx.beginPath(); ctx.arc(q.x,q.y,.7,0,6.283); ctx.fill();
+    }
+    ctx.globalCompositeOperation='source-over';
+  }
+
+  function drawTrails(t){
+    ctx.globalCompositeOperation='lighter';
+    const Rsh=f*cam.zoom/Math.sqrt(D*D-1)*DYSON_R;
+    // faint complete orbital paths, so the swarm reads even in a still frame
+    for(const m of MEMORIES){
+      if(m.core||!m.orbit||!isVisible(m)) continue;
+      if(searchTerm&&!matchMemory(m)) continue;
+      if(cam.focus!=='all'&&m.c!==cam.focus) continue;
+      const o=m.orbit, N=48;
+      ctx.beginPath();
+      for(let i=0;i<=N;i++){
+        const ang=i/N*Math.PI*2;
+        const q=project(V.add(V.mul(o.a,Math.cos(ang)*o.r),V.mul(o.b,Math.sin(ang)*o.r)));
+        if(i===0) ctx.moveTo(q.x,q.y); else ctx.lineTo(q.x,q.y);
+      }
+      ctx.strokeStyle=hexA(TYPE[m.t].color,.082);
+      ctx.lineWidth=.8;
+      ctx.stroke();
+    }
+    // short comet tails behind every satellite
+    for(const m of MEMORIES){
+      if(m.core||!m.orbit||!isVisible(m)) continue;
+      if(searchTerm&&!matchMemory(m)) continue;
+      if(cam.focus!=='all'&&m.c!==cam.focus) continue;
+      const col=TYPE[m.t].color;
+      const pts=[];
+      for(let k=0;k<17;k++) pts.push(project(orbitPoint(m.orbit,t-k*260)));
+      for(let k=pts.length-1;k>=1;k--){
+        const q=pts[k], p2=pts[k-1];
+        if(q.x<-80||q.x>halfW+80||q.y<-80||q.y>halfH+80) continue;
+        let a=(1-k/pts.length)*.24*(.35+.65*(q.z+1)/2);
+        if (q.z<0 && Math.hypot(q.x-cx,q.y-cy)<Rsh) a*=.25;
+        ctx.strokeStyle=hexA(col,a);
+        ctx.lineWidth=1.2;
+        ctx.beginPath(); ctx.moveTo(q.x,q.y); ctx.lineTo(p2.x,p2.y); ctx.stroke();
+      }
+    }
+    // full orbit path for the hovered / pinned satellite
+    const sel=selected||hovered;
+    if(sel&&sel.orbit){
+      const N=96, o=sel.orbit;
+      ctx.beginPath();
+      for(let i=0;i<=N;i++){
+        const ang=i/N*Math.PI*2;
+        const q=project(V.add(V.mul(o.a,Math.cos(ang)*o.r),V.mul(o.b,Math.sin(ang)*o.r)));
+        if(i===0) ctx.moveTo(q.x,q.y); else ctx.lineTo(q.x,q.y);
+      }
+      ctx.strokeStyle=hexA(TYPE[sel.t].color,.16);
+      ctx.lineWidth=1;
+      ctx.setLineDash([3,6]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    ctx.globalCompositeOperation='source-over';
+  }
+
+  function drawEdge(e){
+    const A=project(e.a.p),B=project(e.b.p);
+    const depth=(A.z+B.z)/2;
+    let alpha=e.kind==='spoke'?.055:.10+.20*(depth+1)/2;
+    if (e.c.id==='dust') alpha*=.6;
+    if (cam.focus!=='all'&&e.c.id!==cam.focus) alpha*=.18;
+    ctx.beginPath();ctx.moveTo(A.x,A.y);ctx.lineTo(B.x,B.y);
+    if (e.kind==='dash')ctx.setLineDash([3,5]);else ctx.setLineDash([]);
+    ctx.strokeStyle=hexA(e.c.color,alpha);
+    ctx.lineWidth=e.kind==='spoke'?.7:1.1;
+    ctx.stroke();ctx.setLineDash([]);
+  }
+
+  function drawCore(t){
+    const p=project([0,0,0]);
+    const R=f*cam.zoom/Math.sqrt(D*D-1);
+    const pulse=1+.05*Math.sin(t*.0016);
+    const dim=(cam.focus!=='all'&&cam.focus!=='heart')?.12:1;
+    const corona=makeGlow('#ffb45e',true);
+    const warm=makeGlow('#ffd28a',false);
+    ctx.globalCompositeOperation='lighter';
+    ctx.globalAlpha=.30*dim;
+    ctx.drawImage(corona,p.x-R*.95,p.y-R*.95,R*1.9,R*1.9);
+    ctx.globalAlpha=.55*dim;
+    ctx.drawImage(warm,p.x-R*.63,p.y-R*.63,R*1.26,R*1.26);
+    // corona rays
+    ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(t*.00008);
+    for (let i=0;i<20;i++){
+      const ang=i/20*Math.PI*2;
+      const len=R*(.62+.36*(.5+.5*Math.sin(i*2.7+t*.0007)));
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(ang)*R*.13,Math.sin(ang)*R*.13);
+      ctx.lineTo(Math.cos(ang-.014)*len,Math.sin(ang-.014)*len);
+      ctx.lineTo(Math.cos(ang+.014)*len,Math.sin(ang+.014)*len);
+      ctx.closePath();
+      ctx.fillStyle=`rgba(255,190,110,${.055*dim})`; ctx.fill();
+    }
+    ctx.restore();
+    // hot core
+    const br=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,R*.19);
+    br.addColorStop(0,'rgba(255,255,250,1)');
+    br.addColorStop(.25,'rgba(255,242,205,.95)');
+    br.addColorStop(.55,'rgba(255,202,120,.45)');
+    br.addColorStop(1,'rgba(255,175,70,0)');
+    ctx.fillStyle=br; ctx.beginPath(); ctx.arc(p.x,p.y,R*.19,0,6.283); ctx.fill();
+    // four-point flare
+    ctx.strokeStyle=`rgba(255,244,214,${.30*dim})`; ctx.lineWidth=1;
+    ctx.beginPath();
+    ctx.moveTo(p.x-R*.42,p.y); ctx.lineTo(p.x+R*.42,p.y);
+    ctx.moveTo(p.x,p.y-R*.42); ctx.lineTo(p.x,p.y+R*.42);
+    ctx.stroke();
+    let latest=0;
+    for(const m of MEMORIES) if(m.arrival&&m.arrival>latest&&isVisible(m)) latest=m.arrival;
+    if(latest){
+      const age=(t-latest)/2600;
+      if(age>=0&&age<1){
+        ctx.strokeStyle=`rgba(255,200,110,${.55*(1-age)})`; ctx.lineWidth=2;
+        ctx.beginPath(); ctx.arc(p.x,p.y,R*(.18+.95*age),0,6.283); ctx.stroke();
+        ctx.strokeStyle=`rgba(255,224,160,${.22*(1-age)})`; ctx.lineWidth=6;
+        ctx.beginPath(); ctx.arc(p.x,p.y,R*(.18+.95*age),0,6.283); ctx.stroke();
+      }
+    }
+    ctx.globalCompositeOperation='source-over';
+  }
+
+  function drawCoreAvatar(t){
+    if(!coreAvatarReady) return;
+    const p=project([0,0,0]);
+    const R=f*cam.zoom/Math.sqrt(D*D-1);
+    const size=Math.max(42,R*.30);
+    const dim=(cam.focus!=='all'&&cam.focus!=='heart')?.25:1;
+    ctx.save();
+    ctx.globalAlpha=dim;
+    const g=makeGlow('#ffd28a',true);
+    ctx.globalCompositeOperation='lighter';
+    ctx.globalAlpha=.45*dim;
+    ctx.drawImage(g,p.x-size*.85,p.y-size*.85,size*1.7,size*1.7);
+    ctx.globalCompositeOperation='source-over';
+    ctx.globalAlpha=dim;
+    ctx.fillStyle='rgba(7,14,28,.62)';
+    ctx.beginPath(); ctx.arc(p.x,p.y,size/2,0,6.283); ctx.fill();
+    ctx.beginPath(); ctx.arc(p.x,p.y,size/2,0,6.283); ctx.clip();
+    ctx.drawImage(coreAvatar,p.x-size/2,p.y-size/2,size,size);
+    ctx.restore();
+    ctx.save();
+    ctx.globalAlpha=dim;
+    ctx.strokeStyle='rgba(255,228,175,.9)'; ctx.lineWidth=1.6;
+    ctx.beginPath(); ctx.arc(p.x,p.y,size/2+1.2,0,6.283); ctx.stroke();
+    ctx.strokeStyle='rgba(255,196,112,.25)'; ctx.lineWidth=5;
+    ctx.beginPath(); ctx.arc(p.x,p.y,size/2+3.5,0,6.283); ctx.stroke();
+    ctx.restore();
+  }
+
+  function relatedNodesFor(m){
+    if(!m) return [];
+    const out=[];
+    for(const rel of (Array.isArray(m.related)?m.related:[])){
+      const key=memoryKey(rel.id);
+      const node=MEMORIES.find(x=>memoryKey(x.id)===key && isVisible(x));
+      if(node && node!==m && !out.some(x=>x.node===node)) out.push({node,reason:rel.reason||'关联'});
+    }
+    // make the chain mutual: a node pointing back is also a relation
+    for(const other of MEMORIES){
+      if(other===m || !isVisible(other)) continue;
+      if(!Array.isArray(other.related)) continue;
+      if(other.related.some(r=>memoryKey(r.id)===memoryKey(m.id)) && !out.some(x=>x.node===other)){
+        out.push({node:other,reason:'互相记得'});
+      }
+    }
+    return out.slice(0,6);
+  }
+
+  function drawRelations(t){
+    if(!selected) return;
+    const rels=relatedNodesFor(selected);
+    if(!rels.length) return;
+    const from=project(selected.p);
+    const col=TYPE[selected.t].color;
+    ctx.globalCompositeOperation='lighter';
+    for(let i=0;i<rels.length;i++){
+      const to=project(rels[i].node.p);
+      const dx=to.x-from.x, dy=to.y-from.y, len=Math.hypot(dx,dy)||1;
+      const bow=Math.min(90,Math.max(18,len*.16));
+      const cx=(from.x+to.x)/2 - dy/len*bow;
+      const cy=(from.y+to.y)/2 + dx/len*bow;
+      ctx.strokeStyle='rgba(255,210,140,.10)'; ctx.lineWidth=8;
+      ctx.beginPath(); ctx.moveTo(from.x,from.y); ctx.quadraticCurveTo(cx,cy,to.x,to.y); ctx.stroke();
+      ctx.strokeStyle='rgba(255,224,165,.62)'; ctx.lineWidth=1.7;
+      ctx.beginPath(); ctx.moveTo(from.x,from.y); ctx.quadraticCurveTo(cx,cy,to.x,to.y); ctx.stroke();
+      const u=(t*.00022 + i*.21)%1;
+      const px=(1-u)*(1-u)*from.x + 2*(1-u)*u*cx + u*u*to.x;
+      const py=(1-u)*(1-u)*from.y + 2*(1-u)*u*cy + u*u*to.y;
+      ctx.fillStyle='rgba(255,248,225,1)';
+      ctx.beginPath(); ctx.arc(px,py,2.6,0,6.283); ctx.fill();
+    }
+    ctx.globalCompositeOperation='source-over';
+  }
+
+  function drawSessionOrbits(t){
+    if(!SESSIONS.length) return;
+    ctx.globalCompositeOperation='lighter';
+    for(const session of SESSIONS){
+      if(!sessionVisible(session)) continue;
+      const hot=selectedSession===session || hoveredSession===session;
+      ctx.beginPath();
+      const N=40;
+      for(let i=0;i<=N;i++){
+        const ang=i/N*Math.PI*2;
+        const q=project(V.add(V.mul(session.orbit.a,Math.cos(ang)*session.orbit.r),V.mul(session.orbit.b,Math.sin(ang)*session.orbit.r)));
+        if(i===0) ctx.moveTo(q.x,q.y); else ctx.lineTo(q.x,q.y);
+      }
+      ctx.strokeStyle=`rgba(145,200,255,${hot?.10:.018})`;
+      ctx.lineWidth=.6; ctx.stroke();
+    }
+    ctx.globalCompositeOperation='source-over';
+  }
+
+  function drawSessionLinks(t){
+    if(!SESSIONS.length) return;
+    const selKey=selected?memoryKey(selected.id):'';
+    ctx.globalCompositeOperation='lighter';
+    for(const session of SESSIONS){
+      if(!sessionVisible(session)) continue;
+      const nodes=sessionMemoryNodes(session);
+      if(!nodes.length) continue;
+      const includesSelected=selKey && session.memories.some(id=>memoryKey(id)===selKey);
+      const hotAll=selectedSession===session || hoveredSession===session;
+      const from=project(session.p);
+      for(let i=0;i<nodes.length;i++){
+        const to=project(nodes[i].p);
+        const hot=hotAll || (includesSelected && selected && nodes[i]===selected);
+        const base=hot?.40:(includesSelected?.060:.032);
+        const alpha=base*(.55+.45*(to.z+1)/2);
+        ctx.strokeStyle=`rgba(150,205,255,${alpha})`;
+        ctx.lineWidth=hot?1.25:.6;
+        const mx=(from.x+to.x)/2, my=(from.y+to.y)/2;
+        const dx=to.x-from.x, dy=to.y-from.y, len=Math.hypot(dx,dy)||1;
+        const cx=mx-dy/len*Math.min(28,len*.12), cy=my+dx/len*Math.min(28,len*.12);
+        ctx.beginPath(); ctx.moveTo(from.x,from.y); ctx.quadraticCurveTo(cx,cy,to.x,to.y); ctx.stroke();
+        if(hot){
+          const u=(t*.00016+i*.13)%1;
+          const px=(1-u)*(1-u)*from.x+2*(1-u)*u*cx+u*u*to.x;
+          const py=(1-u)*(1-u)*from.y+2*(1-u)*u*cy+u*u*to.y;
+          ctx.fillStyle='rgba(190,230,255,.9)';
+          ctx.beginPath(); ctx.arc(px,py,1.7,0,6.283); ctx.fill();
+        }
+      }
+    }
+    ctx.globalCompositeOperation='source-over';
+  }
+
+  function drawSessions(t){
+    const list=[];
+    for(const session of SESSIONS){
+      if(!sessionVisible(session)) continue;
+      const q=project(session.p);
+      list.push({s:session,q});
+    }
+    list.sort((a,b)=>a.q.z-b.q.z);
+    projectedSessions=list;
+    if(!list.length) return;
+    ctx.globalCompositeOperation='lighter';
+    for(const o of list){
+      const {s,q}=o;
+      const persp=D/(D-q.z);
+      const base=3.0*persp;
+      const selKey=selected?memoryKey(selected.id):'';
+      const includesSelected=selKey && s.memories.some(id=>memoryKey(id)===selKey);
+      const hot=selectedSession===s || includesSelected || hoveredSession===s;
+      const a=(.30+.70*(q.z+1)/2)*(hot?1:.78);
+      q.r=base;
+      ctx.globalCompositeOperation='lighter';
+      ctx.globalAlpha=Math.min(1,a*.22);
+      ctx.drawImage(makeGlow('#9fd0ff',false),q.x-base*3.6,q.y-base*3.6,base*7.2,base*7.2);
+      ctx.globalAlpha=1;
+      ctx.strokeStyle=`rgba(160,212,255,${a*.85})`;
+      ctx.lineWidth=hot?1.4:1;
+      ctx.beginPath(); ctx.arc(q.x,q.y,base+3.4,0,6.283); ctx.stroke();
+      ctx.strokeStyle=`rgba(160,212,255,${a*.30})`;
+      ctx.beginPath(); ctx.arc(q.x,q.y,base+6.3,0,6.283); ctx.stroke();
+      ctx.fillStyle=`rgba(205,235,255,${a})`;
+      ctx.beginPath(); ctx.arc(q.x,q.y,Math.max(1.1,base*.34),0,6.283); ctx.fill();
+      ctx.strokeStyle=`rgba(190,228,255,${a*.6})`;
+      ctx.lineWidth=.7;
+      ctx.beginPath();
+      ctx.moveTo(q.x-base-6,q.y); ctx.lineTo(q.x-base-1.5,q.y);
+      ctx.moveTo(q.x+base+1.5,q.y); ctx.lineTo(q.x+base+6,q.y);
+      ctx.stroke();
+      if(hot){
+        ctx.strokeStyle='rgba(255,236,185,.85)'; ctx.lineWidth=1.2;
+        ctx.beginPath(); ctx.arc(q.x,q.y,base+9.5,0,6.283); ctx.stroke();
+      }
+    }
+    ctx.globalCompositeOperation='source-over';
+  }
+
+  function drawSessionLabels(t){
+    if(!projectedSessions.length) return;
+    const boxes=[];
+    const cap=halfW<620?4:8;
+    const ordered=projectedSessions.slice().sort((a,b)=>{
+      const ah=(a.s===selectedSession||a.s===hoveredSession)?1:0;
+      const bh=(b.s===selectedSession||b.s===hoveredSession)?1:0;
+      return bh-ah || b.q.z-a.q.z;
+    });
+    let shown=0;
+    for(const o of ordered){
+      if(shown>=cap) break;
+      const {s,q}=o;
+      if(!sessionVisible(s)) continue;
+      if(q.z<.02 && s!==selectedSession && s!==hoveredSession) continue;
+      ctx.font='9.5px "Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif';
+      const text=sessionLabel(s), w=ctx.measureText(text).width;
+      const dirx=q.x-cx, diry=q.y-cy, dl=Math.hypot(dirx,diry)||1;
+      let lx=q.x+dirx/dl*12, ly=q.y+diry/dl*12, align=dirx>=0?'left':'right';
+      if(dl<24){ ly-=q.r+12; align='center'; }
+      const bx=align==='left'?lx:align==='right'?lx-w:lx-w/2;
+      const box={x:bx-2,y:ly-8,w:w+4,h:15};
+      if(bx<8||bx+w>halfW-8||ly<80||ly>halfH-80) continue;
+      if(boxes.some(a=>!(box.x+box.w<a.x-3||box.x>a.x+a.w+3||box.y+box.h<a.y||box.y>a.y+a.h))) continue;
+      boxes.push(box);
+      ctx.textAlign=align;
+      ctx.shadowColor='rgba(0,0,0,.9)';ctx.shadowBlur=5;
+      ctx.lineWidth=1.8;ctx.strokeStyle='rgba(2,5,10,.65)';ctx.strokeText(text,lx,ly);
+      ctx.fillStyle=s===selectedSession?'rgba(225,242,255,.95)':'rgba(175,212,246,.78)';
+      ctx.fillText(text,lx,ly);
+      ctx.shadowBlur=0;
+      shown++;
+    }
+  }
+
+  function nearestSession(mx,my){
+    let best=null,bd=17;
+    for(const o of projectedSessions){
+      if(o.q.z<-.15) continue;
+      const d=Math.hypot(o.q.x-mx,o.q.y-my);
+      if(d<bd){bd=d;best=o.s;}
+    }
+    return best;
+  }
+
+  function drawStars(t){
+    const list=MEMORIES.filter(isVisible).map(m=>({m,q:project(m.p)})).sort((a,b)=>a.q.z-b.q.z);
+    const relSet=selected?new Set(relatedNodesFor(selected).map(r=>r.node)):null;
+    const sessionSet=selectedSession?new Set(sessionMemoryNodes(selectedSession)):null;
+    for (const o of list){
+      const {m,q}=o;
+      if(m.core){
+        q.r=Math.max(10, f*cam.zoom/Math.sqrt(D*D-1)*.15);
+        continue;
+      }
+      const persp=D/(D-q.z);
+      const base=m.core?8.4:2.0+(m.imp-65)*.17;
+      const r=base*persp;
+      const dim=(m.status==='archived'||m.status==='stale')?.45:1;
+      const col=TYPE[m.t].color;
+      let a=(.35+.65*(q.z+1)/2)*dim;
+      const hit=!searchTerm||matchMemory(m);
+      if (cam.focus!=='all'&&m.c!==cam.focus) a*=.16;
+      if (relSet && m!==selected && !relSet.has(m)) a*=.58;
+      if (relSet && relSet.has(m)) a=Math.max(a,.92);
+      if (sessionSet && !sessionSet.has(m)) a*=.55;
+      if (sessionSet && sessionSet.has(m)) a=Math.max(a,.92);
+      if (searchTerm&&!hit) a*=.10;
+      const Rsh=f*cam.zoom/Math.sqrt(D*D-1)*DYSON_R;
+      if (q.z<0 && Math.hypot(q.x-cx,q.y-cy)<Rsh && !(searchTerm&&hit)) a*=.22;
+      const gs=r*10+18;
+      ctx.globalCompositeOperation='lighter';
+      ctx.globalAlpha=Math.min(1,a*.9);
+      ctx.drawImage(makeGlow(col,false),q.x-gs/2,q.y-gs/2,gs,gs);
+      if(relSet && relSet.has(m)){
+        ctx.globalAlpha=.22;
+        ctx.drawImage(makeGlow('#ffd28a',false),q.x-gs*.9,q.y-gs*.9,gs*1.8,gs*1.8);
+      }
+      ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
+      ctx.fillStyle=hexA(col,a);
+      ctx.beginPath();ctx.arc(q.x,q.y,r,0,6.283);ctx.fill();
+      ctx.fillStyle=`rgba(255,255,255,${.92*Math.max(.35,a)})`;
+      ctx.beginPath();ctx.arc(q.x,q.y,Math.max(.9,r*.34),0,6.283);ctx.fill();
+      if (m.core){
+        ctx.strokeStyle=hexA(col,.5*a);ctx.lineWidth=.8;
+        ctx.beginPath();ctx.moveTo(q.x-r*3.4,q.y);ctx.lineTo(q.x+r*3.4,q.y);
+        ctx.moveTo(q.x,q.y-r*3.4);ctx.lineTo(q.x,q.y+r*3.4);ctx.stroke();
+      }
+      if (m.status==='archived'||m.status==='stale'){
+        ctx.strokeStyle=hexA(col,.30);ctx.lineWidth=.7;ctx.setLineDash([1.5,3]);
+        ctx.beginPath();ctx.arc(q.x,q.y,r+3.5,0,6.283);ctx.stroke();ctx.setLineDash([]);
+      }
+      q.r=r;
+    }
+    return list;
+  }
+
+  function boxesOverlap(boxes,b){for(const a of boxes)if(!(b.x+b.w<a.x-3||b.x>a.x+a.w+3||b.y+b.h<a.y||b.y>a.y+a.h))return true;return false}
+
+  function drawLabels(list,t){
+    ctx.textBaseline='middle';
+    const boxes=[];
+    const drawn=new Set();
+    // core label first
+    const coreO=(cam.focus==='all'||cam.focus==='heart')?list.find(o=>o.m.core):null;
+    if (coreO){
+      const q=coreO.q;
+      ctx.font='600 13px "Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif';
+      const text=coreO.m.label;
+      const w=ctx.measureText(text).width;
+      const x=q.x-w/2,y=q.y-q.r-16;
+      boxes.push({x:x-2,y:y-8,w:w+4,h:16});
+      ctx.textAlign='left';ctx.shadowColor='rgba(0,0,0,.9)';ctx.shadowBlur=6;
+      ctx.lineWidth=2.0;ctx.strokeStyle='rgba(2,5,10,.70)';ctx.strokeText(text,x,y);
+      ctx.fillStyle='rgba(247,234,210,.96)';ctx.fillText(text,x,y);ctx.shadowBlur=0;
+    }
+    // cluster names live in the top chips, not in the ball
+    // clusters are color groups on free orbits; the chips carry their names
+    // star labels
+    const searchActive=!!searchTerm;
+    const cand=list.filter(o=>!o.m.core && (cam.focus==='all'||o.m.c===cam.focus) && (!searchActive||matchMemory(o.m)) && (searchActive?true:o.q.z>.02));
+    const picks=[];
+    for (const c of CLUSTERS){
+      if (c.id==='heart') continue;
+      const own=cand.filter(o=>o.m.c===c.id).sort((a,b)=>(b.q.z*2+b.m.imp/100)-(a.q.z*2+a.m.imp/100));
+      if (own[0]) picks.push(own[0]);
+    }
+    for (const o of cand.slice().sort((a,b)=>b.m.imp-a.m.imp||b.q.z-a.q.z)) if (!picks.includes(o)) picks.push(o);
+    let shown=0;
+    const cap=halfW<620?8:14;
+    const perCluster=new Map();
+    for (const o of picks){
+      const {m,q}=o;
+      if (shown>=cap) break;
+      if (!searchActive && cam.focus==='all' && (perCluster.get(m.c)||0)>=3) continue;
+      if (m.status==='archived'&&q.z<.28) continue;
+      const dirx=q.x-cx,diry=q.y-cy,dl=Math.hypot(dirx,diry)||1;
+      let lx=q.x+dirx/dl*15,ly=q.y+diry/dl*15,align=dirx>=0?'left':'right';
+      if (dl<26){ly-=q.r+15;align='center';}
+      ctx.font= m.status==='archived'?'10px "Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif':'11px "Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif';
+      const w=ctx.measureText(m.label).width;
+      const bx=align==='left'?lx:align==='right'?lx-w:lx-w/2;
+      const box={x:bx-2,y:ly-8,w:w+4,h:16};
+      if (bx<8||bx+w>halfW-8||ly<80||ly>halfH-80||boxesOverlap(boxes,box)) continue;
+      boxes.push(box);
+      ctx.textAlign=align;
+      ctx.shadowColor='rgba(0,0,0,.9)';ctx.shadowBlur=5;
+      ctx.lineWidth=1.8;ctx.strokeStyle='rgba(2,5,10,.55)';ctx.strokeText(m.label,lx,ly);
+      ctx.fillStyle=m.status==='archived'?'rgba(141,157,184,.6)':'rgba(219,230,247,.82)';
+      ctx.fillText(m.label,lx,ly);
+      ctx.shadowBlur=0;
+      perCluster.set(m.c,(perCluster.get(m.c)||0)+1);
+      drawn.add(m);
+      shown++;
+    }
+    // force the selected node and its relation chain into view
+    const forced=[];
+    if(selected && !selected.core) forced.push(selected);
+    for(const rel of relatedNodesFor(selected)) forced.push(rel.node);
+    for(const m of forced){
+      if(drawn.has(m)||!isVisible(m)) continue;
+      const q=project(m.p);
+      const dirx=q.x-cx, diry=q.y-cy, dl=Math.hypot(dirx,diry)||1;
+      let lx=q.x+dirx/dl*15, ly=q.y+diry/dl*15, align=dirx>=0?'left':'right';
+      if(dl<26){ ly-=q.r+15; align='center'; }
+      ctx.font='10.5px "Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif';
+      const w=ctx.measureText(m.label).width;
+      const bx=align==='left'?lx:align==='right'?lx-w:lx-w/2;
+      const box={x:bx-2,y:ly-8,w:w+4,h:16};
+      if(bx<8||bx+w>halfW-8||ly<80||ly>halfH-80||boxesOverlap(boxes,box)) continue;
+      boxes.push(box);
+      ctx.textAlign=align;
+      ctx.shadowColor='rgba(0,0,0,.95)';ctx.shadowBlur=6;
+      ctx.lineWidth=2.2;ctx.strokeStyle='rgba(2,5,10,.75)';ctx.strokeText(m.label,lx,ly);
+      ctx.fillStyle=m===selected?'rgba(255,246,215,.98)':'rgba(255,226,165,.90)';
+      ctx.fillText(m.label,lx,ly);
+      ctx.shadowBlur=0;
+      drawn.add(m);
+    }
+  }
+
+  function drawHighlight(){
+    const m=selected||hovered;
+    if (!m) return;
+    const q=project(m.p);
+    ctx.strokeStyle=m===selected?'rgba(255,220,150,.9)':'rgba(255,255,255,.6)';
+    ctx.lineWidth=1.2;
+    ctx.beginPath();ctx.arc(q.x,q.y,q.r+6.5,0,6.283);ctx.stroke();
+    if (m===selected){ctx.strokeStyle='rgba(255,220,150,.25)';ctx.beginPath();ctx.arc(q.x,q.y,q.r+14,0,6.283);ctx.stroke();}
+  }
+
+  function frame(t){
+    ctx.clearRect(0,0,halfW,halfH);
+    for(const m of MEMORIES){
+      if(m.core||!m.orbit) continue;
+      m.p=orbitPoint(m.orbit,t);
+    }
+    for(const session of SESSIONS){
+      if(session.orbit) session.p=sessionPoint(session,t);
+    }
+    drawBg(t);
+    drawNebula(t);
+    drawOrbits();
+    drawSessionOrbits(t);
+    drawDysonBack(t);
+    drawDysonFront(t);
+    drawCore(t);
+    drawCoreAvatar(t);
+    drawBeams(t);
+    drawCollectors(t);
+    drawTrails(t);
+    drawSessionLinks(t);
+    drawRelations(t);
+    const list=drawStars(t);
+    drawSessions(t);
+    drawLabels(list,t);
+    drawSessionLabels(t);
+    drawHighlight();
+    projected=list;
+    requestAnimationFrame(frame);
+  }
+
+  function nearestStar(mx,my){
+    let best=null,bd=20;
+    for (const o of projected){
+      if (o.q.z<-.15) continue;
+      const d=Math.hypot(o.q.x-mx,o.q.y-my);
+      if (d<bd){bd=d;best=o.m;}
+    }
+    return best;
+  }
+  function showTip(m,x,y){
+    if (!m){tip.style.opacity=0;return;}
+    tip.querySelector('b').textContent=m.full;
+    tip.querySelector('small').textContent=`${TYPE[m.t].cn} · 重要度 ${m.imp}${m.status==='archived'?' · 已归档':m.status==='stale'?' · 待更新':''}`;
+    tip.style.opacity=1;
+    const pad=14,bw=tip.offsetWidth,bh=tip.offsetHeight;
+    let tx=x+pad,ty=y+pad;
+    if (tx+bw>window.innerWidth-10) tx=x-bw-pad;
+    if (ty+bh>window.innerHeight-10) ty=y-bh-pad;
+    tip.style.transform=`translate(${tx}px,${ty}px)`;
+  }
+  function showSessionTip(s,x,y){
+    if(!s){tip.style.opacity=0;return;}
+    tip.querySelector('b').textContent=s.title;
+    tip.querySelector('small').textContent=`会话卫星 · ${(s.memories||[]).length} 条记忆`;
+    tip.style.opacity=1;
+    const pad=14,bw=tip.offsetWidth,bh=tip.offsetHeight;
+    let tx=x+pad,ty=y+pad;
+    if(tx+bw>window.innerWidth-10) tx=x-bw-pad;
+    if(ty+bh>window.innerHeight-10) ty=y-bh-pad;
+    tip.style.transform=`translate(${tx}px,${ty}px)`;
+  }
+
+  function hitTest(mx,my){
+    const memory=nearestStar(mx,my);
+    const session=nearestSession(mx,my);
+    if(!memory && !session) return null;
+    if(!memory) return {kind:'session',session};
+    if(!session) return {kind:'memory',memory};
+    const mq=projected.find(o=>o.m===memory)?.q;
+    const sq=projectedSessions.find(o=>o.s===session)?.q;
+    const dm=mq?Math.hypot(mq.x-mx,mq.y-my):1e9;
+    const ds=sq?Math.hypot(sq.x-mx,sq.y-my):1e9;
+    return ds<dm?{kind:'session',session}:{kind:'memory',memory};
+  }
+
+  function addRelation(label,reason,onClick,isSession){
+    const button=document.createElement('button');
+    button.type='button'; button.className='rel'+(isSession?' session':'');
+    const strong=document.createElement('strong'); strong.textContent=label;
+    const span=document.createElement('span'); span.textContent=reason;
+    button.append(strong,span);
+    button.addEventListener('click',onClick);
+    iRelated.appendChild(button);
+  }
+
+  function updateInfo(m){
+    info.classList.remove('session-mode');
+    if (!m){info.classList.remove('on');return;}
+    selected=m; selectedSession=null;
+    document.getElementById('iBadge').textContent=TYPE[m.t].cn+(m.status==='archived'?' · 已归档':m.status==='stale'?' · 待更新':'');
+    document.getElementById('iTitle').textContent=m.full;
+    document.getElementById('iDesc').textContent=m.summary || (m.core?'中心恒星：戴森球的能量核心，所有记忆帆板都绕着它运行。':`属于「${clusterById[m.c].name}」采集区。`);
+    iMeta.textContent=`${clusterById[m.c]?.name||'未分组'} · ${TYPE[m.t].cn}`;
+    iImages.innerHTML='';
+    const images=Array.isArray(m.images)?m.images.slice(0,3):[];
+    iImages.style.display=images.length?'flex':'none';
+    for(const image of images){
+      const el=document.createElement('img');
+      el.src=image.src;
+      el.alt=image.alt||m.label;
+      el.title=image.alt||m.full;
+      el.loading='lazy';
+      el.addEventListener('error',()=>el.remove());
+      el.addEventListener('click',()=>{ try{ window.open(image.src,'_blank','noopener'); }catch(e){} });
+      iImages.appendChild(el);
+    }
+    const sourceSessions=[];
+    const seenSessions=new Set();
+    for(const id of (m.sourceSessions||[])){
+      const session=sessionById.get(id);
+      if(session && sessionVisible(session) && !seenSessions.has(session.id)){ sourceSessions.push(session); seenSessions.add(session.id); }
+    }
+    // Memories without explicit source_sessions are assigned to the nearest / containing session by the host.
+    for(const session of SESSIONS){
+      if(!sessionVisible(session) || seenSessions.has(session.id)) continue;
+      if((session.memories||[]).some(id=>memoryKey(id)===memoryKey(m.id))){ sourceSessions.push(session); seenSessions.add(session.id); }
+    }
+    const relations=relatedNodesFor(m);
+    iRelated.innerHTML='';
+    if(sourceSessions.length || relations.length){
+      iRelated.style.display='flex';
+      const title=document.createElement('div');
+      title.className='relTitle'; title.textContent='关系链';
+      iRelated.appendChild(title);
+      for(const session of sourceSessions){
+        addRelation(sessionLabel(session),'来源会话',()=>{
+          selected=null; selectedSession=session; updateSessionInfo(session); showTip(null);
+        },true);
+      }
+      for(const rel of relations){
+        addRelation(rel.node.label,rel.reason,()=>{
+          selected=rel.node; selectedSession=null; updateInfo(rel.node); showTip(null);
+        },false);
+      }
+    } else {
+      iRelated.style.display='none';
+    }
+    document.getElementById('iImp').textContent=m.imp;
+    document.getElementById('iDate').textContent=m.date;
+    document.getElementById('iBar').style.width=Math.max(6,Math.min(100,(m.imp-60)/35*100))+'%';
+    document.getElementById('iFoot').textContent='id · '+m.id;
+    info.classList.add('on');
+  }
+
+  function updateSessionInfo(s){
+    selected=null; selectedSession=s;
+    info.classList.add('session-mode');
+    document.getElementById('iBadge').textContent='会话';
+    document.getElementById('iTitle').textContent=s.title;
+    document.getElementById('iDesc').textContent=`会话卫星 · 连接 ${(s.memories||[]).length} 条记忆。`;
+    iMeta.textContent='来源会话 · '+s.id;
+    iImages.innerHTML=''; iImages.style.display='none';
+    const nodes=sessionMemoryNodes(s);
+    iRelated.innerHTML='';
+    if(nodes.length){
+      iRelated.style.display='flex';
+      const title=document.createElement('div');
+      title.className='relTitle'; title.textContent='连接记忆';
+      iRelated.appendChild(title);
+      for(const node of nodes){
+        addRelation(node.label,'会话产出',()=>{
+          selected=node; selectedSession=null; updateInfo(node); showTip(null);
+        },false);
+      }
+    } else {
+      iRelated.style.display='none';
+    }
+    document.getElementById('iImp').textContent='';
+    document.getElementById('iDate').textContent='';
+    document.getElementById('iBar').style.width='0%';
+    document.getElementById('iFoot').textContent='session · '+s.id;
+    info.classList.add('on');
+  }
+
+  canvas.addEventListener('pointerdown',e=>{
+    canvas.setPointerCapture(e.pointerId);
+    dragging={x:e.clientX,y:e.clientY,ox:e.clientX,oy:e.clientY,moved:false,target:hitTest(e.clientX,e.clientY)};
+    canvas.classList.add('dragging');lastInteract=performance.now();
+  });
+  canvas.addEventListener('pointermove',e=>{
+    if (dragging){
+      const dx=e.clientX-dragging.x,dy=e.clientY-dragging.y;
+      dragging.x=e.clientX;dragging.y=e.clientY;
+      if (Math.hypot(e.clientX-dragging.ox,e.clientY-dragging.oy)>5) dragging.moved=true;
+      cam.yaw+=dx*.0055;
+      cam.pitch=Math.max(-1.25,Math.min(1.25,cam.pitch+dy*.0055));
+      if (cam.pending){cam.pending=null;setActive(cam.focus);}
+      cam.tx=null;cam.ty=null;lastInteract=performance.now();
+      showTip(null);return;
+    }
+    const hit=hitTest(e.clientX,e.clientY);
+    if(hit?.kind==='session'){
+      hovered=null; hoveredSession=hit.session;
+      canvas.style.cursor='pointer';
+      showSessionTip(hit.session,e.clientX,e.clientY);
+      return;
+    }
+    const m=hit?.memory||null;
+    hoveredSession=null;
+    if (m!==hovered){hovered=m;canvas.style.cursor=m?'pointer':'grab';}
+    showTip(m,e.clientX,e.clientY);
+  });
+  canvas.addEventListener('pointerup',e=>{
+    canvas.classList.remove('dragging');
+    if (dragging&&!dragging.moved){
+      const hit=dragging.target;
+      if(hit?.kind==='session'){
+        selected=null; selectedSession=hit.session; updateSessionInfo(hit.session);
+      } else {
+        selected=hit?.memory||null; selectedSession=null; updateInfo(selected);
+      }
+      showTip(null);hovered=null;hoveredSession=null;
+    }
+    dragging=null;
+  });
+  canvas.addEventListener('pointerleave',()=>{hovered=null;hoveredSession=null;showTip(null);});
+  canvas.addEventListener('wheel',e=>{
+    e.preventDefault();
+    cam.zoom=Math.max(.62,Math.min(1.9,cam.zoom*Math.exp(-e.deltaY*.0011)));
+    lastInteract=performance.now();
+  },{passive:false});
+  document.getElementById('closeInfo').addEventListener('click',()=>{selected=null;selectedSession=null;info.classList.remove('on');});
+
+  searchInput.addEventListener('input',()=>{
+    searchTerm=searchInput.value.trim().toLowerCase();
+    updateSearchCount();
+  });
+  searchInput.addEventListener('keydown',(e)=>{
+    if(e.key==='Enter'){
+      const m=MEMORIES.find(x=>isVisible(x)&&matchMemory(x));
+      if(m){selected=m;selectedSession=null;updateInfo(m);showTip(null);}
+    }
+    if(e.key==='Escape'){
+      searchInput.value='';searchTerm='';updateSearchCount();
+    }
+  });
+  playBtn.addEventListener('click',startPlay);
+  timeRange.addEventListener('input',()=>{stopPlay();setTimeline(Number(timeRange.value));});
+  timeAll.addEventListener('click',()=>{
+    stopPlay();timeline.cutoff=Infinity;timeRange.value=String(timeline.max);updateTimelineUI();
+  });
+  roamBtn.addEventListener('click',()=>{
+    const pool=MEMORIES.filter(isVisible);
+    if(!pool.length) return;
+    selected=pool[Math.floor(Math.random()*pool.length)];
+    selectedSession=null;
+    updateInfo(selected);
+  });
+
+  const chips=document.getElementById('chips');
+  chips.querySelector('[data-c="all"]').addEventListener('click',()=>focusCluster('all'));
+  for (const c of CLUSTERS){
+    const b=document.createElement('button');
+    b.className='chip';b.dataset.c=c.id;
+    b.innerHTML=`<i style="background:${c.color}"></i>${c.name}`;
+    b.addEventListener('click',()=>focusCluster(c.id));
+    chips.appendChild(b);
+  }
+  function setActive(id){for(const b of chips.querySelectorAll('.chip'))b.classList.toggle('active',b.dataset.c===id);}
+  function focusCluster(id){
+    setActive(id);
+    let ty,tp,tz=1.16;
+    if (id==='all'){ty=.15;tp=-.08;tz=1.05;cam.pending='all';}
+    else{
+      cam.pending=id;
+      ty=cam.yaw; tp=cam.pitch; tz=Math.max(cam.zoom,1.10);
+    }
+    while(ty-cam.yaw>Math.PI)ty-=Math.PI*2;
+    while(ty-cam.yaw<-Math.PI)ty+=Math.PI*2;
+    cam.tx=ty;cam.ty=tp;cam.tz=tz;cam.t0=performance.now();cam.t1=760;
+    lastInteract=performance.now();
+    if (id==='all'){selected=null;selectedSession=null;info.classList.remove('on');}
+  }
+
+  let prev=performance.now();
+  function tick(now){
+    const dt=Math.min(50,now-prev);prev=now;
+    if (cam.tx!=null){
+      const k=Math.min(1,(now-cam.t0)/cam.t1);
+      const e=k<.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2;
+      cam.yaw+=(cam.tx-cam.yaw)*e;
+      cam.pitch+=(cam.ty-cam.pitch)*e;
+      cam.zoom+=(cam.tz-cam.zoom)*e;
+      if (k>=1){
+        cam.yaw=cam.tx;cam.pitch=cam.ty;cam.zoom=cam.tz;cam.tx=null;
+        if (cam.pending){cam.focus=cam.pending;cam.pending=null;
+          if (cam.focus!=='all'&&selected&&selected.c!==cam.focus){selected=null;updateInfo(null);}}
+      }
+    } else if (!dragging&&now-lastInteract>3600&&cam.focus==='all'){
+      cam.yaw+=.00006*dt;
+    }
+    requestAnimationFrame(tick);
+  }
+
+  // ---- live sync with the host plugin ----
+  function hashId(id){
+    let h = 2166136261;
+    for (let i=0;i<id.length;i++){ h ^= id.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return h >>> 0;
+  }
+  function makeNode(m, announce){
+    const c = CLUSTERS.find(x=>x.id===m.cluster) || CLUSTERS[1];
+    const type = TYPE[m.type] ? m.type : 'experience';
+    const isCore = m.core === true;
+    const orbit = isCore ? null : makeOrbit(m);
+    const p = isCore ? [0,0,0] : orbitPoint(orbit, performance.now());
+    const node = { id:m.id, c:c.id, t:type, imp:Number(m.imp)||65,
+      label:isCore ? coreLabel : (m.label || m.full || m.id), full:m.full || m.label || m.id,
+      date:m.date || '', created:m.created || '', summary:m.summary || '',
+      tags:Array.isArray(m.tags)?m.tags:[], images:Array.isArray(m.images)?m.images:[],
+      related:Array.isArray(m.related)?m.related:[],
+      sourceSessions:Array.isArray(m.sourceSessions)?m.sourceSessions:[],
+      status:m.status || 'active', core:isCore,
+      p, orbit, arrival: announce ? performance.now() : 0 };
+    MEMORIES.push(node); c.nodes.push(node);
+    return node;
+  }
+  function removeNode(node){
+    const c = clusterById[node.c];
+    if (c) c.nodes = c.nodes.filter(n=>n!==node);
+    for (let i=edges.length-1;i>=0;i--) if (edges[i].a===node || edges[i].b===node) edges.splice(i,1);
+    const i = MEMORIES.indexOf(node);
+    if (i>=0) MEMORIES.splice(i,1);
+  }
+  function toast(text){
+    const el = document.querySelector('.hint');
+    if (!el) return;
+    const old = el.textContent;
+    el.textContent = text;
+    setTimeout(()=>{ if (el.textContent===text) el.textContent = old; }, 3200);
+  }
+  let hydrated = false;
+  async function sync(){
+    try{
+      const res = await fetch('/memory-nebula/api', {cache:'no-store'});
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!data || data.ok===false || !Array.isArray(data.memories) || data.memories.length===0) return;
+      if (data.vaultPath) {
+        vaultPath = data.vaultPath;
+        const sourceEl=document.querySelector('.source');
+        if(sourceEl) sourceEl.textContent='source · '+vaultPath;
+      }
+      if (data.avatarUrl && coreAvatar.getAttribute('src') !== data.avatarUrl){
+        coreAvatarReady = false;
+        coreAvatar.src = data.avatarUrl;
+      }
+      if (data.coreLabel){
+        coreLabel = data.coreLabel;
+        const coreNode = MEMORIES.find(x=>x.core);
+        if (coreNode) coreNode.label = coreLabel;
+      }
+      if (Array.isArray(data.sessions)) buildSessions(data.sessions);
+      const first = !hydrated;
+      let added=0, removed=0;
+      const keyOf = memoryKey;
+      const byKey = new Map(MEMORIES.map(m=>[keyOf(m.id),m]));
+      for (const m of data.memories){
+        const ex = byKey.get(keyOf(m.id));
+        if (ex){
+          ex.full = m.full || ex.full;
+          ex.status = m.status || 'active';
+          ex.imp = Number(m.imp) || ex.imp;
+          ex.created = m.created || ex.created;
+          ex.date = m.date || ex.date;
+          ex.summary = m.summary || ex.summary;
+          ex.tags = Array.isArray(m.tags) ? m.tags : (ex.tags || []);
+          if (Array.isArray(m.images)) ex.images = m.images;
+          if (Array.isArray(m.related)) ex.related = m.related;
+          if (Array.isArray(m.sourceSessions)) ex.sourceSessions = m.sourceSessions;
+          if (TYPE[m.type]) ex.t = m.type;
+        } else { makeNode(m, !first); added++; }
+      }
+      const keep = new Set(data.memories.map(m=>keyOf(m.id)));
+      for (const m of MEMORIES.slice()) if (!keep.has(keyOf(m.id))){ removeNode(m); removed++; }
+      refreshTimeline();
+      updateAstro();
+      updateSearchCount();
+      if (selected) updateInfo(selected);
+      if (selectedSession){
+        const current=sessionById.get(selectedSession.id);
+        if(current){ selectedSession=current; updateSessionInfo(current); }
+        else { selectedSession=null; info.classList.remove('on'); }
+      }
+      if (added || removed){
+        if (!first) toast(added ? `+${added} 颗记忆星已加入 · 共 ${MEMORIES.length} 颗` : `${removed} 颗记忆星已归档 · 共 ${MEMORIES.length} 颗`);
+      }
+      hydrated = true;
+    }catch(e){ /* offline or opened as a local file */ }
+  }
+  window.__nebula={projected:()=>projected,cam,project,POS:MEMORIES,sync,SESSIONS:()=>SESSIONS,projectedSessions:()=>projectedSessions,hitTest,nearestSession};
+  setTimeout(sync, 350);
+  if (location.protocol==='http:' || location.protocol==='https:'){
+    try{ const es = new EventSource('/memory-nebula/events'); es.onmessage = ()=>sync(); }catch(e){}
+  }
+  resize();
+  requestAnimationFrame(frame);
+  requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>
