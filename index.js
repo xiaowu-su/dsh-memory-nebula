@@ -429,18 +429,8 @@ function readSessions(sessionDir, memories) {
     });
   }
   if (!out.length) return { sessions: [], sig: sig.join('\n') };
-  const byId = new Map(out.map(s => [s.id, s]));
-  const sourceIds = new Set();
-  for (const m of memories) for (const id of (m.sourceSessions || [])) if (byId.has(id)) sourceIds.add(id);
-  const chosen = [...sourceIds].map(id => byId.get(id));
-  const seen = new Set(chosen.map(s => s.id));
-  const recent = out
-    .filter(s => s.title && !seen.has(s.id))
-    .sort((a, b) => b.updated - a.updated);
-  for (const s of recent) {
-    if (chosen.length >= 12) break;
-    chosen.push(s); seen.add(s.id);
-  }
+  // Every session file is a satellite: no cap, no "recent 12" filter.
+  const chosen = out;
   for (const s of chosen) {
     s.memories = [];
     s.title = s.title || ('会话 ' + s.id.slice(-6));
@@ -470,7 +460,6 @@ function readSessions(sessionDir, memories) {
       if (best) s.memories.push(best.id);
     }
     delete s.cwd;
-    delete s.created;
     delete s.updated;
   }
   return {

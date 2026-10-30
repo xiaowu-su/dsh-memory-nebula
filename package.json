@@ -1,6 +1,6 @@
 {
   "name": "dsh-memory-nebula",
-  "version": "0.2.8",
+  "version": "0.2.9",
   "private": false,
   "type": "module",
   "description": "Portable 3D memory Dyson sphere for DSH: configurable DSH Memory vault, session directory, avatar and image roots; syncs memories and sessions live.",

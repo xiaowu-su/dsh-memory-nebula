@@ -1197,7 +1197,7 @@
   function drawSessionLabels(t){
     if(!projectedSessions.length) return;
     const boxes=[];
-    const cap=halfW<620?4:8;
+    const cap=projectedSessions.length;
     const ordered=projectedSessions.slice().sort((a,b)=>{
       const ah=(a.s===selectedSession||a.s===hoveredSession)?1:0;
       const bh=(b.s===selectedSession||b.s===hoveredSession)?1:0;
