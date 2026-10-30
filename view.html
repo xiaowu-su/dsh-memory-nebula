@@ -1117,22 +1117,55 @@
 
   function drawSessionLinks(t){
     if(!SESSIONS.length) return;
+    const focus=cam.focus||'all';
     const selKey=selected?memoryKey(selected.id):'';
+    const coreQ=project([0,0,0]);
     ctx.globalCompositeOperation='lighter';
+    ctx.globalAlpha=1;
     for(const session of SESSIONS){
       if(!sessionVisible(session)) continue;
-      const nodes=sessionMemoryNodes(session);
-      if(!nodes.length) continue;
       const includesSelected=selKey && session.memories.some(id=>memoryKey(id)===selKey);
       const hotAll=selectedSession===session || hoveredSession===session;
       const from=project(session.p);
+
+      // Heart focus is the hub view: every session satellite connects to the
+      // central whale heart, not just the sessions that own a heart memory.
+      if(focus==='heart'){
+        const hot=hotAll || (includesSelected && selected);
+        const alpha=(hot?.68:.27);
+        const dx=coreQ.x-from.x, dy=coreQ.y-from.y, len=Math.hypot(dx,dy)||1;
+        const cx=(from.x+coreQ.x)/2 - dy/len*Math.min(42,len*.10);
+        const cy=(from.y+coreQ.y)/2 + dx/len*Math.min(42,len*.10);
+        ctx.strokeStyle=`rgba(255,214,150,${alpha})`;
+        ctx.lineWidth=hot?1.8:1.0;
+        ctx.beginPath(); ctx.moveTo(from.x,from.y); ctx.quadraticCurveTo(cx,cy,coreQ.x,coreQ.y); ctx.stroke();
+        if(hot){
+          const u=(t*.00018)%1;
+          const px=(1-u)*(1-u)*from.x+2*(1-u)*u*cx+u*u*coreQ.x;
+          const py=(1-u)*(1-u)*from.y+2*(1-u)*u*cy+u*u*coreQ.y;
+          ctx.fillStyle='rgba(255,240,205,.95)';
+          ctx.beginPath(); ctx.arc(px,py,2.4,0,6.283); ctx.fill();
+        }
+        continue;
+      }
+
+      // Other cluster focuses connect EVERY session to the memories of that
+      // cluster/type. "All" keeps the original session-to-own-memory web.
+      let nodes;
+      if(focus==='all'){
+        nodes=sessionMemoryNodes(session);
+      } else {
+        nodes=MEMORIES.filter(m=>m.c===focus && isVisible(m));
+      }
+      if(!nodes.length) continue;
       for(let i=0;i<nodes.length;i++){
-        const to=project(nodes[i].p);
-        const hot=hotAll || (includesSelected && selected && nodes[i]===selected);
-        const base=hot?.40:(includesSelected?.060:.032);
+        const target=nodes[i];
+        const to=project(target.p);
+        const hot=hotAll || (includesSelected && selected && target===selected);
+        const base=hot?.52:(focus==='all'?(includesSelected?.060:.032):.070);
         const alpha=base*(.55+.45*(to.z+1)/2);
         ctx.strokeStyle=`rgba(150,205,255,${alpha})`;
-        ctx.lineWidth=hot?1.25:.6;
+        ctx.lineWidth=hot?1.4:.55;
         const mx=(from.x+to.x)/2, my=(from.y+to.y)/2;
         const dx=to.x-from.x, dy=to.y-from.y, len=Math.hypot(dx,dy)||1;
         const cx=mx-dy/len*Math.min(28,len*.12), cy=my+dx/len*Math.min(28,len*.12);

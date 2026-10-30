@@ -79,6 +79,12 @@ CLI 只负责安装 package；还需要把 `dsh-memory-nebula` 加进该 profile
 
 ![路径设置](docs/settings.png)
 
+## 采集区按钮
+
+- **全部**：保持原规则，每个会话只连自己的记忆。
+- **鲸心**：所有会话卫星都连到中心鲸心。
+- **雪的规矩 / 说说轨道 / 传讯星域 / 本机基建 / 旧星尘**：所有会话按该采集区/类型，连到该区的记忆星。
+
 ## 自动检测
 
 - 记忆库：`$DSH_MEMORY_VAULT` → 带 DSH Memory 标记的候选 → `~/Documents/DSH Memory` → `~/DSH Memory`
